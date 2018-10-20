@@ -37,6 +37,7 @@ divSchemes
     div(phi,K)      Gauss linear;
     div(phi,Ekp)    Gauss linear;
     div(R)          Gauss linear;
+    div(phi,thermo:massH2O)   Gauss upwind;
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
 }
 
