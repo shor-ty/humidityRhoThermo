@@ -66,14 +66,17 @@ protected:
         //- Dynamic viscosity [kg/m/s]
         volScalarField mu_;
 
-        //- Rel. humidity [%]
+        //- Relative humidity [-]
         volScalarField relHum_;
 
         //- Absolute humidity [kg/m^3]
         volScalarField absHum_;
 
-        //- Water content [g]
+        //- Water content [kg]
         volScalarField massH2O_;
+
+        //- Specific humidity [kg/kg] (water/air)
+        volScalarField specificHumidity_;
 
         //- Saturation pressure of water [Pa]
         volScalarField pSatH2O_;
@@ -89,6 +92,8 @@ protected:
 
         //- Construct as copy (not implemented)
         humidityRhoThermo(const humidityRhoThermo&);
+
+public:
 
 
 public:

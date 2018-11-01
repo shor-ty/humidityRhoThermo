@@ -47,7 +47,7 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimDensity
@@ -88,10 +88,11 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
             phasePropertyName("thermo:relHum"),
             mesh.time().timeName(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        mesh
+        mesh,
+        dimless
     ),
 
     absHum_
@@ -120,6 +121,19 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
         ),
         mesh,
         dimMass
+    ),
+
+    specificHumidity_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:specificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
     ),
 
     pSatH2O_
@@ -151,7 +165,7 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
     )
 
 {
-    method_ = word("buck");
+    method_ = word("magnus");
 }
 
 
@@ -171,7 +185,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::AUTO_WRITE
         ),
         mesh,
         dimDensity
@@ -212,11 +226,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
             phasePropertyName("thermo:relHum"),
             mesh.time().timeName(),
             mesh,
-            IOobject::MUST_READ,
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
         mesh,
-        dimensionSet(0, 0, 0, 0, 0)
+        dimless
     ),
 
     absHum_
@@ -241,6 +255,20 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimMass
+    ),
+
+    specificHumidity_ 
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:specificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::MUST_READ,
             IOobject::AUTO_WRITE
         ),
         mesh,
@@ -276,7 +304,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimPressure
     )
 {
-    method_ = word("buck");
+    method_ = word("magnus");
 }
 
 

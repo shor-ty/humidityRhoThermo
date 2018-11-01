@@ -91,14 +91,17 @@ public:
         //- Calculate partial pressure of water saturation pressure [Pa]
         virtual void partialPressureH2O();
 
-        //- Calculate the absolute water content [kg/m^3]
+        //- Calculate the relative humidity [-]
+        virtual void relHumidity();
+
+        //- Calculate the absolute humidity [kg/m^3]
         virtual void absHumidity();
 
-        //- Calculate the mass of water [g]
-        virtual void massH2O();
+        //- Conserved transport equation for the specific humidity [kg/kg]
+        virtual void specificHumidityTransport();
 
-        //- Conserved transport equation for H2O
-        virtual void H2OTransport();
+        //- Accounting for density change
+        virtual void densityChange();
 };
 
 

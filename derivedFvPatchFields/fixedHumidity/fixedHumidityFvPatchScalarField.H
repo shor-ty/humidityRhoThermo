@@ -33,6 +33,7 @@ Usage
     <patchName>
     {
         type            fixedHumidity;
+        mode            relative;
         value           uniform 0.1;
     }
     \endverbatim
@@ -68,11 +69,11 @@ protected:
 
     // Protected data
 
-        //- Relative or absolute input data
-        word quantityType_;
+        //- Mode used | Absolute | Relative
+        const word mode_;
 
-        //- Absolute value set
-        bool absolute_;
+        //- Value of humidity
+        const scalar humidity_;
 
 public:
 
@@ -148,6 +149,9 @@ public:
 
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
+
+            //- Calculate the water content
+            virtual scalarField mH2O(const basicThermo&, const label);
 };
 
 
