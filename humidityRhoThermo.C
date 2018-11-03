@@ -620,18 +620,13 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
 {
     const wordList& bTsH = this->specificHumidity_.boundaryField().types();
 
-    //- Search method used to calculate pSat
-    word patchName = "";
+    //- Search if fixedHumidity bc is used
     bool found = false;
     forAll(bTsH, patchI)
     {
         if (bTsH[patchI] == "fixedHumidity")
         {
-            patchName =
-                this->specificHumidity_.boundaryField()[patchI].patch().name();
-
             found = true;
-
             break;
         }
     }
@@ -641,21 +636,21 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
 
     if (found)
     {
-        //- This hack requires the change of the object name in
-        //  0/thermo:specificHumidity from volScalarField to dictionary
-        IOdictionary tmp
+        if
         (
-            IOobject
+            this->specificHumidity_.mesh().foundObject<IOList<word>>
             (
-                "thermo:specificHumidity",
-                specificHumidity_.mesh().time().timeName(),
-                specificHumidity_.mesh(),
-                IOobject::MUST_READ
+                "methodName"
             )
-        );
-
-        method = word(
-            tmp.subDict("boundaryField").subDict(patchName).lookup("method"));
+        )
+        {
+            Info<< "inside " << endl;
+            method =
+                this->specificHumidity_.mesh().lookupObject<IOList<word>>
+                (
+                    "methodName"
+                )[0];
+        }
     }
     else
     {

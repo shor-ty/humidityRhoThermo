@@ -44,7 +44,19 @@ fixedHumidityFvPatchScalarField
     fixedValueFvPatchScalarField(p, iF),
     mode_("relative"),
     method_("buck"),
-    value_(0.0)
+    value_(0.0),
+    methodName_
+    (
+        IOobject
+        (
+            "methodName",
+            p.boundaryMesh().mesh().time().timeName(),
+            p.boundaryMesh().mesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        1
+    )
 {}
 
 
@@ -60,7 +72,8 @@ fixedHumidityFvPatchScalarField
     fixedValueFvPatchScalarField(ptf, p, iF, mapper),
     mode_(ptf.mode_),
     method_(ptf.method_),
-    value_(ptf.value_)
+    value_(ptf.value_),
+    methodName_(ptf.methodName_)
 {}
 
 
@@ -75,7 +88,19 @@ fixedHumidityFvPatchScalarField
     fixedValueFvPatchScalarField(p, iF, dict),
     mode_(dict.lookupOrDefault<word>("mode", "relative")),
     method_(dict.lookupOrDefault<word>("method", "buck")),
-    value_(readScalar(dict.lookup("humidity")))
+    value_(readScalar(dict.lookup("humidity"))),
+    methodName_
+    (
+        IOobject
+        (
+            "methodName",
+            p.boundaryMesh().mesh().time().timeName(),
+            p.boundaryMesh().mesh(),
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        1
+    )
 {
     if (mode_ == "absolute")
     {
@@ -97,6 +122,8 @@ fixedHumidityFvPatchScalarField
             << "'buck' and 'magnus'."
             << exit(FatalError);
     }
+
+    methodName_[0] = method_;
 }
 
 
@@ -109,7 +136,8 @@ fixedHumidityFvPatchScalarField
     fixedValueFvPatchScalarField(tppsf),
     mode_(tppsf.mode_),
     method_(tppsf.method_),
-    value_(tppsf.value_)
+    value_(tppsf.value_),
+    methodName_(tppsf.methodName_)
 {}
 
 
@@ -123,7 +151,8 @@ fixedHumidityFvPatchScalarField
     fixedValueFvPatchScalarField(tppsf, iF),
     mode_(tppsf.mode_),
     method_(tppsf.method_),
-    value_(tppsf.value_)
+    value_(tppsf.value_),
+    methodName_(tppsf.methodName_)
 {}
 
 

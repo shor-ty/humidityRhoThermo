@@ -9,7 +9,7 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
+    class       volScalarField;
     object      thermo:specificHumidity;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -29,7 +29,7 @@ boundaryField
     {
         type            fixedHumidity;
         mode            relative;
-        method          buck;
+        method          magnus;
         humidity        0.50;
         value           uniform 0.0;
     }

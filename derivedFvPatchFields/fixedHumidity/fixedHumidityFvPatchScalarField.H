@@ -79,6 +79,9 @@ private:
         //- Value of humidity
         scalar value_;
 
+        //- Exchange value for thermodynamic database
+        IOList<word> methodName_;
+
 public:
 
     //- Runtime type information
