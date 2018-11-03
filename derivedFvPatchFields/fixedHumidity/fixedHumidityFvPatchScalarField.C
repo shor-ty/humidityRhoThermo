@@ -77,27 +77,24 @@ fixedHumidityFvPatchScalarField
     method_(dict.lookupOrDefault<word>("method", "buck")),
     value_(readScalar(dict.lookup("humidity")))
 {
-//    volScalarField& mH2O =
-//        this->db().objectRegistry::lookupObjectRef<volScalarField>("massH2O");
-
     if (mode_ == "absolute")
     {
-        NotImplemented; 
+        NotImplemented;
     }
-
-    else if (mode_ == "relative")
-    {
-        if (value_ > 1)
-        {
-            value_ /= 100;
-        }
-    }
-
-    else
+    else if (mode_ != "relative")
     {
         FatalErrorInFunction
             << "The specified type is not supported '"
             << mode_ << "'. Supported are 'relative' or 'absolute'"
+            << exit(FatalError);
+    }
+
+    if (method_ != "buck" && method_ != "magnus")
+    {
+        FatalErrorInFunction
+            << "The specified method to calculate the saturation pressure is "
+            << "not supported: " << method_ << ". Supported methods are "
+            << "'buck' and 'magnus'."
             << exit(FatalError);
     }
 }
@@ -167,6 +164,7 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
 
     scalarField pSatH2O(pfT.size(), scalar(0));
 
+    //  Standard method not as accurate as buck
     if (method_ == "magnus")
     {
         scalar pre1 = 611.2;
@@ -194,7 +192,7 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
             scalar TdC = theta[facei];
 
             pSatH2O[facei] =
-                pre1*exp(((value1-TdC)/value2)*TdC/(value3+TdC));
+                pre1*exp(((value1-TdC/value2)*TdC/(value3+TdC)));
         }
     }
 
@@ -219,7 +217,7 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
     //- e) Calculate the specific humidity [kg/kg]
     scalarField specificHumidity(pfT.size(), scalar(0));
 
-    return rhoWater/(rhoWater+rhoDryAir); 
+    return rhoWater/(rhoWater+rhoDryAir);
 }
 
 
