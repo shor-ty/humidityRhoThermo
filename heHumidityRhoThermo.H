@@ -94,8 +94,8 @@ public:
         //- Calculate the relative humidity [-]
         virtual void relHumidity();
 
-        //- Calculate the absolute humidity [kg/m^3]
-        virtual void absHumidity();
+        //- Calculate the water density [kg/m^3]
+        virtual void waterDensity();
 
         //- Conserved transport equation for the specific humidity [kg/kg]
         virtual void specificHumidityTransport();

@@ -168,17 +168,17 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
     Info<< "   Calculate the partial pressure of water\n";
     partialPressureH2O();
 
-    Info<< "   Calculate the absolute humidity\n";
-    //absHumidity();
-
     Info<< "   Calculate the saturation pressure of water\n";
-    //pSatH2O();
+    pSatH2O();
 
     Info<< "   Calculate the relative humidity\n";
-    //relHumidity();
+    relHumidity();
+
+    Info<< "   Calculate the water density\n";
+    waterDensity();
 
     Info<< "   Accounting for density change based on humidity\n";
-    //densityChange();
+    densityChange();
 
     if (debug)
     {
@@ -282,14 +282,14 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::partialPressureH2O(
     const volScalarField& T = this->T_;
     const volScalarField& sH = this->specificHumidity_;
 
-    volScalarField pPH2O = this->partialPressureH2O_;
+    volScalarField& pPH2O = this->partialPressureH2O_;
 
     pPH2O =
         (-p/RSpecificDryAir/T)
       * pow
         (
             (-1./(RSpecificDryAir*T))
-          + ((1-pow(sH+small, -1))* (1/(RSpecificH2O*T))),
+          + ((1-pow(sH+vSmall, -1))* (1/(RSpecificH2O*T))),
            -1
         );
 }
@@ -316,17 +316,21 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::relHumidity()
 
 
 template<class BasicPsiThermo, class MixtureType>
-void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::absHumidity()
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterDensity()
 {
-    const scalarField& mH2O = this->massH2O_.primitiveField();
-    const scalarField& V = this->massH2O_.mesh().V();
+    const volScalarField& pPH2O = this->partialPressureH2O_;
+    const volScalarField& T= this->T_;
 
-    scalarField& absHumidity = this->absHum_.primitiveFieldRef();
+    const dimensionedScalar RSpecificH2O
+    (
+        "gasConstantH2O",
+        dimensionSet(0,2,-2,-1,0,0,0),
+        scalar(461.51)
+    );
 
-    forAll(absHumidity, cellI)
-    {
-        absHumidity[cellI] = mH2O[cellI] / V[cellI];
-    }
+    volScalarField& waterDensity = this->waterDensity_;
+
+    waterDensity = pPH2O / (RSpecificH2O * T);
 }
 
 
@@ -357,19 +361,18 @@ specificHumidityTransport()
         specHum,
         dimensionedScalar("tmp", dimensionSet(0,0,0,0,0,0,0), scalar(0))
     );
+
+    //- Set small values to zero
 }
 
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::densityChange()
 {
-    scalarField& rhoCells = this->rho_.primitiveFieldRef();
-    const scalarField& rhoWater = this->absHum_.primitiveField();
+    const volScalarField& rhoWater = this->waterDensity_;
+    volScalarField& rho = this->rho_;
 
-    forAll(rhoCells, cellI)
-    {
-        rhoCells[cellI] += rhoWater[cellI];
-    }
+    rho += rhoWater;
 }
 
 

@@ -69,8 +69,8 @@ protected:
         //- Relative humidity [-]
         volScalarField relHum_;
 
-        //- Absolute humidity [kg/m^3]
-        volScalarField absHum_;
+        //- Water density [kg/m^3]
+        volScalarField waterDensity_;
 
         //- Water content [kg]
         volScalarField massH2O_;
@@ -85,7 +85,7 @@ protected:
         volScalarField partialPressureH2O_;
 
         //- Partial pressure calculation method
-        word method_;
+        mutable word method_;
 
 
     // Protected Member Functions

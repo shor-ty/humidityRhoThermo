@@ -25,10 +25,12 @@ License
 
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
-//#include "basicThermo.H"
-#include "humidityRhoThermo.C"
+#include "basicThermo.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fixedHumidityFvPatchScalarField.H"
+
+class heHumidityRhoThermo;
+
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -41,7 +43,8 @@ fixedHumidityFvPatchScalarField
 :
     fixedValueFvPatchScalarField(p, iF),
     mode_("relative"),
-    humidity_(0.0)
+    method_("buck"),
+    value_(0.0)
 {}
 
 
@@ -56,7 +59,8 @@ fixedHumidityFvPatchScalarField
 :
     fixedValueFvPatchScalarField(ptf, p, iF, mapper),
     mode_(ptf.mode_),
-    humidity_(ptf.humidity_)
+    method_(ptf.method_),
+    value_(ptf.value_)
 {}
 
 
@@ -70,20 +74,23 @@ fixedHumidityFvPatchScalarField
 :
     fixedValueFvPatchScalarField(p, iF, dict),
     mode_(dict.lookupOrDefault<word>("mode", "relative")),
-    humidity_(readScalar(dict.lookup("humidity")))
+    method_(dict.lookupOrDefault<word>("method", "buck")),
+    value_(readScalar(dict.lookup("humidity")))
 {
 //    volScalarField& mH2O =
 //        this->db().objectRegistry::lookupObjectRef<volScalarField>("massH2O");
 
     if (mode_ == "absolute")
     {
-        //operator==(humidity_);
+        NotImplemented; 
     }
 
     else if (mode_ == "relative")
     {
-
-        //operator==(humidity_);
+        if (value_ > 1)
+        {
+            value_ /= 100;
+        }
     }
 
     else
@@ -104,7 +111,8 @@ fixedHumidityFvPatchScalarField
 :
     fixedValueFvPatchScalarField(tppsf),
     mode_(tppsf.mode_),
-    humidity_(tppsf.humidity_)
+    method_(tppsf.method_),
+    value_(tppsf.value_)
 {}
 
 
@@ -117,7 +125,8 @@ fixedHumidityFvPatchScalarField
 :
     fixedValueFvPatchScalarField(tppsf, iF),
     mode_(tppsf.mode_),
-    humidity_(tppsf.humidity_)
+    method_(tppsf.method_),
+    value_(tppsf.value_)
 {}
 
 
@@ -133,32 +142,32 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
     const basicThermo& thermo = basicThermo::lookupThermo(*this);
     const label patchi = patch().index();
 
-    scalarField massH2O = mH2O(thermo, patchi);
+    const scalarField specificHumidity = calcSpecificHumidity(thermo, patchi);
 
     //const scalarField& pw = thermo.p().boundaryField()[patchi];
     //fvPatchScalarField& Tw =
     //    const_cast<fvPatchScalarField&>(thermo.T().boundaryField()[patchi]);
     //Tw.evaluate();
-    //operator==(thermo.he(pw, Tw, patchi));
+    operator==(specificHumidity);
 
     fixedValueFvPatchScalarField::updateCoeffs();
 }
 
 
-Foam::scalarField Foam::fixedHumidityFvPatchScalarField::mH2O
+const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumidity
 (
     const basicThermo& thermo,
     const label patchi
 )
 {
     //- a) Calc saturation pressure
-    const word method = humidityRhoThermo::method_;
-    const scalarField& Tpatch = thermo.T().boundaryField()[patchi];
-    const scalarField theta = Tpatch - 273.15; //(Tpatch.size(), scalar(0));
+    const scalarField& pfT = thermo.T().boundaryField()[patchi];
+    const scalarField& pfp = thermo.p().boundaryField()[patchi];
+    const scalarField theta = pfT - 273.15; //(Tpatch.size(), scalar(0));
 
-    scalarField pSatH2O(Tpatch.size(), scalar(0));
+    scalarField pSatH2O(pfT.size(), scalar(0));
 
-    if (method == "magnus")
+    if (method_ == "magnus")
     {
         scalar pre1 = 611.2;
         scalar pre2 = 17.62;
@@ -173,7 +182,7 @@ Foam::scalarField Foam::fixedHumidityFvPatchScalarField::mH2O
     //  Buck formula [1996]
     //  Valid between 0 to 100 degC and 1013.25 hPa
     //  Very accurate between 0 degC and 50 degC
-    else if (method == "buck")
+    else if (method_ == "buck")
     {
         scalar pre1 = 611.21;
         scalar value1 = 18.678;
@@ -190,22 +199,37 @@ Foam::scalarField Foam::fixedHumidityFvPatchScalarField::mH2O
     }
 
     //- b) Calc partial pressure of water
-    scalarField partialPressureH2O(Tpatch.size(), scalar(0));
-    partialPressureH2O = humidity_ * pSatH2O;
+    scalarField partialPressureH2O(pfT.size(), scalar(0));
+    partialPressureH2O = value_ * pSatH2O;
 
-    //- c) Calc absolute humidity
-    scalarField absHumidity(Tpatch.size(), scalar(0));
+    //- c) Calc density of water [kg/m^3]
+    scalarField rhoWater(pfT.size(), scalar(0));
+    {
+        scalar RH2O = 461.51;
+        rhoWater = partialPressureH2O/(RH2O*pfT);
+    }
 
-    scalar RH2O = 461.51;
+    //- d) Calc density of dry air [kg/m^3]
+    scalarField rhoDryAir(pfT.size(), scalar(0));
+    {
+        scalar RdryAir = 287.058;
+        rhoDryAir = (pfp - partialPressureH2O)/(RdryAir*pfT);
+    }
 
-    absHumidity = partialPressureH2O / RH2O / Tpatch; 
+    //- e) Calculate the specific humidity [kg/kg]
+    scalarField specificHumidity(pfT.size(), scalar(0));
 
-    //- d) Calc water content / mass
-    scalarField mH2O(Tpatch.size(), scalar(0));
-//    mH2O = absHumidity * V;
+    return rhoWater/(rhoWater+rhoDryAir); 
+}
 
-    return pSatH2O;
 
+void Foam::fixedHumidityFvPatchScalarField::write(Ostream& os) const
+{
+    fvPatchScalarField::write(os);
+    os.writeKeyword("mode") << mode_ << token::END_STATEMENT << nl;
+    os.writeKeyword("method") << method_ << token::END_STATEMENT << nl;
+    os.writeKeyword("humidity") << value_ << token::END_STATEMENT << nl;
+    writeEntry("value", os);
 }
 
 

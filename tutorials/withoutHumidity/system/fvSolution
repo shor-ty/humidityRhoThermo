@@ -20,7 +20,7 @@ solvers
     "rho.*"
     {
         solver          PCG;
-        preconditioner  DIC;
+        preconditioner  FDIC;
         tolerance       0;
         relTol          0;
     }
@@ -28,7 +28,7 @@ solvers
     p_rgh
     {
         solver          PCG;
-        preconditioner  DIC;
+        preconditioner  FDIC;
         tolerance       1e-8;
         relTol          0.01;
     }
@@ -47,7 +47,7 @@ solvers
         relTol          0.1;
     }
 
-    "(U|h|e|k|epsilon|R|thermo:massH2O)Final"
+    "(U|h|e|k|epsilon|R|thermo:specificHumidity)Final"
     {
         $U;
         relTol          0;

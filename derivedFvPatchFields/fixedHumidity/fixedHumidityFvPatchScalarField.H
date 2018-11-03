@@ -35,6 +35,7 @@ Usage
         type            fixedHumidity;
         mode            relative;
         value           uniform 0.1;
+        method          buck;
     }
     \endverbatim
 
@@ -65,15 +66,18 @@ class fixedHumidityFvPatchScalarField
     public fixedValueFvPatchScalarField
 {
 
-protected:
+private:
 
-    // Protected data
+    // Private data
 
         //- Mode used | Absolute | Relative
-        const word mode_;
+        word mode_;
+
+        //- Calculation method | magnus | buck
+        const word method_;
 
         //- Value of humidity
-        const scalar humidity_;
+        scalar value_;
 
 public:
 
@@ -150,8 +154,15 @@ public:
             //- Update the coefficients associated with the patch field
             virtual void updateCoeffs();
 
-            //- Calculate the water content
-            virtual scalarField mH2O(const basicThermo&, const label);
+            //- Calculate the specific humidity
+            virtual const scalarField calcSpecificHumidity
+            (
+                const basicThermo&,
+                const label
+            );
+
+    //- Write
+    virtual void write(Ostream&) const;
 };
 
 

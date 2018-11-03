@@ -95,11 +95,11 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
         dimless
     ),
 
-    absHum_
+    waterDensity_ 
     (
         IOobject
         (
-            phasePropertyName("thermo:absHum"),
+            phasePropertyName("thermo:waterDensity"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -233,11 +233,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimless
     ),
 
-    absHum_
+    waterDensity_ 
     (
         IOobject
         (
-            phasePropertyName("thermo:absHum"),
+            phasePropertyName("thermo:waterDensity"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
