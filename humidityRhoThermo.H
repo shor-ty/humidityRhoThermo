@@ -69,14 +69,17 @@ protected:
         //- Relative humidity [-]
         volScalarField relHum_;
 
-        //- Water density [kg/m^3]
-        volScalarField waterDensity_;
+        //- Water content [kg(water)/m^3(Air)]
+        volScalarField waterContent_;
 
-        //- Water content [kg]
-        volScalarField massH2O_;
+        //- Max water content [kg(water)/m^3(Air)] for stabilization
+        volScalarField maxWaterContent_;
 
         //- Specific humidity [kg/kg] (water/air)
         volScalarField specificHumidity_;
+
+        //- Max specific humidity [kg/kg] (water/air)
+        volScalarField maxSpecificHumidity_;
 
         //- Saturation pressure of water [Pa]
         volScalarField pSatH2O_;
@@ -93,7 +96,10 @@ protected:
         //- Construct as copy (not implemented)
         humidityRhoThermo(const humidityRhoThermo&);
 
-public:
+
+    // Turbulence fields
+
+        volScalarField muEff_;
 
 
 public:
@@ -170,6 +176,10 @@ public:
 
             //- Dynamic viscosity of mixture for patch [kg/m/s]
             virtual tmp<scalarField> mu(const label patchi) const;
+
+        // Read
+
+            virtual const word readMethod() const;
 };
 
 

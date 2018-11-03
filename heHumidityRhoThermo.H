@@ -25,7 +25,8 @@ Class
     Foam::heHumidityRhoThermo
 
 Description
-    Energy for a mixture based on density
+    Energy for a mixture based on density.
+    Includes humidity effects
 
 SourceFiles
     heHumidityRhoThermo.C
@@ -94,14 +95,17 @@ public:
         //- Calculate the relative humidity [-]
         virtual void relHumidity();
 
-        //- Calculate the water density [kg/m^3]
-        virtual void waterDensity();
+        //- Calculate the water content [kg(water)/m^3(air)]
+        virtual void waterContent();
 
         //- Conserved transport equation for the specific humidity [kg/kg]
         virtual void specificHumidityTransport();
 
         //- Accounting for density change
         virtual void densityChange();
+
+        //- Limit the specific humidity
+        virtual void limit();
 };
 
 

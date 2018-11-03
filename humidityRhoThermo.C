@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "humidityRhoThermo.H"
+#include "volFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -36,7 +37,11 @@ namespace Foam
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phaseName)
+Foam::humidityRhoThermo::humidityRhoThermo
+(
+    const fvMesh& mesh,
+    const word& phaseName
+)
 :
     fluidThermo(mesh, phaseName),
     rho_
@@ -95,32 +100,32 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
         dimless
     ),
 
-    waterDensity_ 
+    waterContent_
     (
         IOobject
         (
-            phasePropertyName("thermo:waterDensity"),
+            phasePropertyName("thermo:waterContent"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimDensity
     ),
 
-    massH2O_
+    maxWaterContent_
     (
         IOobject
         (
-            phasePropertyName("thermo:massH2O"),
+            phasePropertyName("maxWaterContent"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
-        dimMass
+        dimDensity
     ),
 
     specificHumidity_
@@ -136,6 +141,20 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
         mesh
     ),
 
+    maxSpecificHumidity_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:maxSpecificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimless
+    ),
+
     pSatH2O_
     (
         IOobject
@@ -144,7 +163,7 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimPressure
@@ -158,14 +177,27 @@ Foam::humidityRhoThermo::humidityRhoThermo(const fvMesh& mesh, const word& phase
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimPressure
-    )
+    ),
 
+    muEff_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:muEff"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionSet(1,-1,-1,0,0,0,0)
+    )
 {
-    method_ = word("magnus");
+    method_ = readMethod();
 }
 
 
@@ -233,35 +265,35 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimless
     ),
 
-    waterDensity_ 
+    waterContent_
     (
         IOobject
         (
-            phasePropertyName("thermo:waterDensity"),
+            phasePropertyName("thermo:waterContent"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimDensity
     ),
 
-    massH2O_
+    maxWaterContent_
     (
         IOobject
         (
-            phasePropertyName("thermo:massH2O"),
+            phasePropertyName("thermo:maxWaterContent"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
-        dimMass
+        dimDensity
     ),
 
-    specificHumidity_ 
+    specificHumidity_
     (
         IOobject
         (
@@ -272,9 +304,22 @@ Foam::humidityRhoThermo::humidityRhoThermo
             IOobject::AUTO_WRITE
         ),
         mesh,
-        dimMass
+        dimless
     ),
 
+    maxSpecificHumidity_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:maxSpecificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimless
+    ),
 
     pSatH2O_
     (
@@ -284,7 +329,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimPressure
@@ -298,13 +343,27 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimPressure
+    ),
+
+    muEff_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:muEff"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionSet(1,-1,-1,0,0,0,0)
     )
 {
-    method_ = word("magnus");
+    method_ = readMethod();
 }
 
 
@@ -334,7 +393,8 @@ Foam::tmp<Foam::volScalarField> Foam::humidityRhoThermo::rho() const
 }
 
 
-Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::rho(const label patchi) const
+Foam::tmp<Foam::scalarField>
+Foam::humidityRhoThermo::rho(const label patchi) const
 {
     return rho_.boundaryField()[patchi];
 }
@@ -364,10 +424,65 @@ Foam::tmp<Foam::volScalarField> Foam::humidityRhoThermo::mu() const
 }
 
 
-Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::mu(const label patchi) const
+Foam::tmp<Foam::scalarField>
+Foam::humidityRhoThermo::mu(const label patchi) const
 {
     return mu_.boundaryField()[patchi];
 }
 
+
+const Foam::word Foam::humidityRhoThermo::readMethod() const
+{
+    const wordList& bTsH = this->specificHumidity_.boundaryField().types();
+
+    //- Search method used to calculate pSat
+    word patchName = "";
+    bool found = false;
+    forAll(bTsH, patchI)
+    {
+        if (bTsH[patchI] == "fixedHumidity")
+        {
+            patchName =
+                this->specificHumidity_.boundaryField()[patchI].patch().name();
+
+            found = true;
+
+            break;
+        }
+    }
+
+    //- Default method
+    word method = "buck";
+
+    if (found)
+    {
+        //- This hack requires the change of the object name in
+        //  0/thermo:specificHumidity from volScalarField to dictionary
+        IOdictionary tmp
+        (
+            IOobject
+            (
+                "thermo:specificHumidity",
+                specificHumidity_.mesh().time().timeName(),
+                specificHumidity_.mesh(),
+                IOobject::MUST_READ
+            )
+        );
+
+        method = word(
+            tmp.subDict("boundaryField").subDict(patchName).lookup("method"));
+    }
+    else
+    {
+        WarningInFunction
+            << "No fixedHumidity boundary condition found. Using the default "
+            << "method to calculate the saturation pressure\n" << endl;
+    }
+
+    Info<< "Saturation pressure calculation based on "
+        << method << "\n" << endl;
+
+    return method;
+}
 
 // ************************************************************************* //

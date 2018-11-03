@@ -165,20 +165,23 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
     Info<< "   Solve transport equation for specific humidity\n";
     specificHumidityTransport();
 
-    Info<< "   Calculate the partial pressure of water\n";
-    partialPressureH2O();
-
     Info<< "   Calculate the saturation pressure of water\n";
     pSatH2O();
+
+    Info<< "   Calculate the partial pressure of water\n";
+    partialPressureH2O();
 
     Info<< "   Calculate the relative humidity\n";
     relHumidity();
 
-    Info<< "   Calculate the water density\n";
-    waterDensity();
+    Info<< "   Calculate the water content\n";
+    waterContent();
 
     Info<< "   Accounting for density change based on humidity\n";
     densityChange();
+
+    //- Keep physical bounds
+    limit();
 
     if (debug)
     {
@@ -256,7 +259,15 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::pSatH2O()
         );
 
         this->pSatH2O_ =
-            pre1*exp(((value1-theta)/value2)*theta/(value3+theta));
+            pre1*exp(((value1-(theta/value2))*theta/(value3+theta)));
+    }
+    else
+    {
+        FatalErrorInFunction
+            << "The specified method to calculate the saturation pressure is "
+            << "not supported: " << this->method_ << ". Supported methods are "
+            << "'buck' and 'magnus'."
+            << exit(FatalError);
     }
 }
 
@@ -316,9 +327,11 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::relHumidity()
 
 
 template<class BasicPsiThermo, class MixtureType>
-void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterDensity()
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterContent()
 {
     const volScalarField& pPH2O = this->partialPressureH2O_;
+    const volScalarField& pSatH2O = this->pSatH2O_;
+    const volScalarField& p = this->p_;
     const volScalarField& T= this->T_;
 
     const dimensionedScalar RSpecificH2O
@@ -328,9 +341,22 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterDensity()
         scalar(461.51)
     );
 
-    volScalarField& waterDensity = this->waterDensity_;
+    volScalarField& waterContent = this->waterContent_;
+    waterContent = pPH2O / (RSpecificH2O * T);
 
-    waterDensity = pPH2O / (RSpecificH2O * T);
+    volScalarField& maxWaterContent = this->maxWaterContent_;
+    maxWaterContent = pSatH2O / (RSpecificH2O * T);
+
+    const dimensionedScalar RSpecificDryAir
+    (
+        "gasConstantDryAir",
+        dimensionSet(0,2,-2,-1,0,0,0),
+        scalar(287.058)
+    );
+
+    volScalarField& maxSpecificHumidity = this->maxSpecificHumidity_;
+    maxSpecificHumidity =
+        maxWaterContent / ((p-pSatH2O)/(RSpecificDryAir*T) + maxWaterContent);
 }
 
 
@@ -339,42 +365,96 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::
 specificHumidityTransport()
 {
     volScalarField& specHum = this->specificHumidity_;
+    volScalarField& muEff = this->muEff_;
+
+    const volScalarField& mu = this->mu_;
+
+    //- Old density
+    const volScalarField& rho =
+        this->db().objectRegistry::lookupObject<volScalarField>("rho");
 
     const surfaceScalarField& phi =
         this->db().objectRegistry::lookupObject<surfaceScalarField>("phi");
 
-    const volScalarField& rho =
-        this->db().objectRegistry::lookupObject<volScalarField>("rho");
+    const IOdictionary& turbProp =
+        this->db().objectRegistry
+        ::lookupObject<IOdictionary>("turbulenceProperties");
+
+    const word turbulenceMode = turbProp.lookup("simulationType");
+
+    if (turbulenceMode == "RAS")
+    {
+        const volScalarField& nut =
+            this->db().objectRegistry::lookupObject<volScalarField>("nut");
+
+        muEff = rho*nut + mu;
+    }
+    else
+    {
+        muEff = mu;
+    }
 
     fvScalarMatrix specHumEqn
     (
         fvm::ddt(rho, specHum)
       + fvm::div(phi, specHum)
+     ==
+        fvm::laplacian(muEff, specHum)
     );
 
     specHumEqn.relax();
     specHumEqn.solve();
 
-    //- No negative value possible
+    //- To keep physical range
+    //  Defined between 0 and max water content based on saturation pressure
+    //  Maximum is not limited yet
     bound
     (
         specHum,
         dimensionedScalar("tmp", dimensionSet(0,0,0,0,0,0,0), scalar(0))
     );
-
-    //- Set small values to zero
 }
 
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::densityChange()
 {
-    const volScalarField& rhoWater = this->waterDensity_;
-    volScalarField& rho = this->rho_;
-
-    rho += rhoWater;
+    this->rho_ += this->waterContent_;
 }
 
+
+template<class BasicPsiThermo, class MixtureType>
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::limit()
+{
+    volScalarField& specHum = this->specificHumidity_;
+    const volScalarField& maxSpecHum = this->maxSpecificHumidity_;
+
+    label min = 0;
+    label max = 0;
+
+    forAll(specHum, cellI)
+    {
+        if (specHum[cellI] < 0)
+        {
+            specHum[cellI] = 0;
+            min++;
+        }
+        else if (specHum[cellI] > maxSpecHum[cellI])
+        {
+            specHum[cellI] = maxSpecHum[cellI];
+            max++;
+        }
+    }
+
+    if (min > 0)
+    {
+        Info<< "Corrected " << min << " cells which were lower than 0\n";
+    }
+    if (max > 0)
+    {
+        Info<< "Corrected " << max << " cells which were higher than max\n";
+    }
+}
 
 
 // ************************************************************************* //
