@@ -3,7 +3,7 @@
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
     \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
-     \\/     M anipulation  |
+     \\/     M anipulation  | Copyright (C) 2015-2017 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -25,8 +25,7 @@ Class
     Foam::heHumidityRhoThermo
 
 Description
-    Energy for a mixture based on density.
-    Includes humidity effects
+    Energy for a mixture based on density
 
 SourceFiles
     heHumidityRhoThermo.C
@@ -36,7 +35,7 @@ SourceFiles
 #ifndef heHumidityRhoThermo_H
 #define heHumidityRhoThermo_H
 
-#include "humidityRhoThermo.H"
+#include "rhoThermo.H"
 #include "heThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -56,10 +55,21 @@ class heHumidityRhoThermo
     // Private Member Functions
 
         //- Calculate the thermo variables
-        void calculate();
+        void calculate
+        (
+            const volScalarField& p,
+            volScalarField& T,
+            volScalarField& he,
+            volScalarField& psi,
+            volScalarField& rho,
+            volScalarField& mu,
+            volScalarField& alpha,
+            const bool doOldTimes
+        );
 
         //- Construct as copy (not implemented)
         heHumidityRhoThermo(const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&);
+
 
 public:
 
@@ -74,6 +84,15 @@ public:
         (
             const fvMesh&,
             const word& phaseName
+        );
+
+
+        //- Construct from mesh,dictionary,phase name with a single temperature
+        heHumidityRhoThermo
+        (
+            const fvMesh&,
+            const word& phaseName,
+            const word& dictName
         );
 
 

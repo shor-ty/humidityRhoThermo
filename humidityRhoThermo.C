@@ -3,7 +3,7 @@
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     |
     \\  /    A nd           | Copyright (C) 2011-2017 OpenFOAM Foundation
-     \\/     M anipulation  |
+     \\/     M anipulation  | Copyright (C) 2017 OpenCFD Ltd.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -24,7 +24,6 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "humidityRhoThermo.H"
-#include "volFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -32,6 +31,7 @@ namespace Foam
 {
     defineTypeNameAndDebug(humidityRhoThermo, 0);
     defineRunTimeSelectionTable(humidityRhoThermo, fvMesh);
+    defineRunTimeSelectionTable(humidityRhoThermo, fvMeshDictPhase);
 }
 
 
@@ -367,6 +367,171 @@ Foam::humidityRhoThermo::humidityRhoThermo
 }
 
 
+Foam::humidityRhoThermo::humidityRhoThermo
+(
+    const fvMesh& mesh,
+    const word& phaseName,
+    const word& dictionaryName
+)
+:
+    fluidThermo(mesh, phaseName, dictionaryName),
+    rho_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:rho"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimDensity
+    ),
+
+    psi_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:psi"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionSet(0, -2, 2, 0, 0)
+    ),
+
+    mu_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:mu"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionSet(1, -1, -1, 0, 0)
+    ),
+
+    relHum_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:relHum"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh,
+        dimless
+    ),
+
+    waterContent_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:waterContent"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimDensity
+    ),
+
+    maxWaterContent_
+    (
+        IOobject
+        (
+            phasePropertyName("maxWaterContent"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimDensity
+    ),
+
+    specificHumidity_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:specificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    ),
+
+    maxSpecificHumidity_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:maxSpecificHumidity"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimless
+    ),
+
+    pSatH2O_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:pSatH2O"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimPressure
+    ),
+
+    partialPressureH2O_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:partialPressureH2O"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimPressure
+    ),
+
+    muEff_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:muEff"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimensionSet(1,-1,-1,0,0,0,0)
+    )
+{
+    method_ = readMethod();
+}
+
+
 // * * * * * * * * * * * * * * * * Selectors * * * * * * * * * * * * * * * * //
 
 Foam::autoPtr<Foam::humidityRhoThermo> Foam::humidityRhoThermo::New
@@ -378,6 +543,16 @@ Foam::autoPtr<Foam::humidityRhoThermo> Foam::humidityRhoThermo::New
     return basicThermo::New<humidityRhoThermo>(mesh, phaseName);
 }
 
+
+Foam::autoPtr<Foam::humidityRhoThermo> Foam::humidityRhoThermo::New
+(
+     const fvMesh& mesh,
+     const word& phaseName,
+     const word& dictName
+)
+{
+    return basicThermo::New<humidityRhoThermo>(mesh, phaseName, dictName);
+}
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
@@ -393,8 +568,7 @@ Foam::tmp<Foam::volScalarField> Foam::humidityRhoThermo::rho() const
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::humidityRhoThermo::rho(const label patchi) const
+Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::rho(const label patchi) const
 {
     return rho_.boundaryField()[patchi];
 }
@@ -405,6 +579,18 @@ Foam::volScalarField& Foam::humidityRhoThermo::rho()
     return rho_;
 }
 
+
+void Foam::humidityRhoThermo::correctRho
+(
+    const Foam::volScalarField& deltaRho,
+    const dimensionedScalar& rhoMin,
+    const dimensionedScalar& rhoMax
+)
+{
+    rho_ += deltaRho;
+    rho_ = max(rho_, rhoMin);
+    rho_ = min(rho_, rhoMax);
+}
 
 void Foam::humidityRhoThermo::correctRho(const Foam::volScalarField& deltaRho)
 {
@@ -424,8 +610,7 @@ Foam::tmp<Foam::volScalarField> Foam::humidityRhoThermo::mu() const
 }
 
 
-Foam::tmp<Foam::scalarField>
-Foam::humidityRhoThermo::mu(const label patchi) const
+Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::mu(const label patchi) const
 {
     return mu_.boundaryField()[patchi];
 }
@@ -484,5 +669,6 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
 
     return method;
 }
+
 
 // ************************************************************************* //
