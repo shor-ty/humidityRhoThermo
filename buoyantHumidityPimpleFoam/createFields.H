@@ -71,10 +71,12 @@ volScalarField p_rgh
 // Force p_rgh to be consistent with p
 p_rgh = p - rho*gh;
 
+mesh.setFluxRequired(p_rgh.name());
+
 label pRefCell = 0;
 scalar pRefValue = 0.0;
 
-if (thermo.incompressible())
+if (p_rgh.needReference())
 {
     setRefCell
     (
@@ -84,25 +86,20 @@ if (thermo.incompressible())
         pRefCell,
         pRefValue
     );
+
+    p += dimensionedScalar
+    (
+        "p",
+        p.dimensions(),
+        pRefValue - getRefCellValue(p, pRefCell)
+    );
 }
 
-mesh.setFluxRequired(p_rgh.name());
+dimensionedScalar initialMass("initialMass", fvc::domainIntegrate(rho));
 
-Info<< "Creating field dpdt\n" << endl;
-volScalarField dpdt
-(
-    IOobject
-    (
-        "dpdt",
-        runTime.timeName(),
-        mesh
-    ),
-    mesh,
-    dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
-);
+#include "createDpdt.H"
 
-Info<< "Creating field kinetic energy K\n" << endl;
-volScalarField K("K", 0.5*magSqr(U));
+#include "createK.H"
 
 #include "createMRF.H"
 #include "createRadiationModel.H"

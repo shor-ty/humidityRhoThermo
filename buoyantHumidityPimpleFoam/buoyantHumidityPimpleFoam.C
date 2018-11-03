@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2018 OpenFOAM Foundation
+   \\    /   O peration     |
+    \\  /    A nd           | Copyright (C) 2011-2017 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,6 +23,9 @@ License
 
 Application
     buoyantPimpleFoam
+
+Group
+    grpHeatTransferSolvers
 
 Description
     Transient solver for buoyant, turbulent flow of compressible fluids for
@@ -46,7 +49,8 @@ int main(int argc, char *argv[])
 {
     #include "postProcess.H"
 
-    #include "setRootCaseLists.H"
+    #include "addCheckCaseOptions.H"
+    #include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"
     #include "createControl.H"
@@ -97,9 +101,7 @@ int main(int argc, char *argv[])
 
         runTime.write();
 
-        Info<< "ExecutionTime = " << runTime.elapsedCpuTime() << " s"
-            << "  ClockTime = " << runTime.elapsedClockTime() << " s"
-            << nl << endl;
+        runTime.printExecutionTime(Info);
     }
 
     Info<< "End\n" << endl;

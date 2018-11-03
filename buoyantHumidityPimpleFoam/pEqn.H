@@ -1,3 +1,7 @@
+
+dimensionedScalar compressibility = fvc::domainIntegrate(psi);
+bool compressible = (compressibility.value() > SMALL);
+
 rho = thermo.rho();
 
 // Thermodynamic density needs to be updated by psi*d(p) after the
@@ -41,10 +45,11 @@ while (pimple.correctNonOrthogonal())
       - fvm::laplacian(rhorAUf, p_rgh)
     );
 
-    if (thermo.incompressible())
-    {
-        p_rghEqn.setReference(pRefCell, getRefCellValue(p_rgh, pRefCell));
-    }
+    p_rghEqn.setReference
+    (
+        pRefCell,
+        compressible ? getRefCellValue(p_rgh, pRefCell) : pRefValue
+    );
 
     p_rghEqn.solve(mesh.solver(p_rgh.select(pimple.finalInnerIter())));
 
@@ -67,13 +72,37 @@ while (pimple.correctNonOrthogonal())
 
 p = p_rgh + rho*gh;
 
-// Thermodynamic density update
-thermo.correctRho(psi*p - psip0);
+#include "rhoEqn.H"
+#include "compressibleContinuityErrs.H"
+
+if (p_rgh.needReference())
+{
+    if (!compressible)
+    {
+        p += dimensionedScalar
+        (
+            "p",
+            p.dimensions(),
+            pRefValue - getRefCellValue(p, pRefCell)
+        );
+    }
+    else
+    {
+        p += (initialMass - fvc::domainIntegrate(psi*p))
+            /compressibility;
+        thermo.correctRho(psi*p - psip0);
+        rho = thermo.rho();
+        p_rgh = p - rho*gh;
+    }
+}
+else
+{
+    thermo.correctRho(psi*p - psip0);
+}
+
+rho = thermo.rho();
 
 if (thermo.dpdt())
 {
     dpdt = fvc::ddt(p);
 }
-
-#include "rhoEqn.H"
-#include "compressibleContinuityErrs.H"
