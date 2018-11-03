@@ -25,6 +25,7 @@ License
 
 #include "humidityRhoThermo.H"
 #include "volFields.H"
+#include "fixedHumidityFvPatchScalarField.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -453,6 +454,16 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
 
     //- Default method
     word method = "buck";
+
+    //- Change method with respect to fixedHumidity BC otherwise use default
+    if (this->specificHumidity_.mesh().foundObject<IOList<word>>("methodName"))
+    {
+        method =
+            this->specificHumidity_.mesh().lookupObject<IOList<word>>
+            (
+                "methodName"
+            )[0];
+    }
 
     if (found)
     {

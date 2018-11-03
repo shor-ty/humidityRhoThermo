@@ -79,6 +79,9 @@ private:
         //- Value of humidity
         scalar value_;
 
+        //- Exchange value for thermodynamic database
+        IOList<word> methodName_;
+
 public:
 
     //- Runtime type information
@@ -161,8 +164,9 @@ public:
                 const label
             );
 
-    //- Write
-    virtual void write(Ostream&) const;
+    // Write
+
+        virtual void write(Ostream&) const;
 };
 
 
