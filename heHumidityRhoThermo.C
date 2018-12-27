@@ -435,7 +435,7 @@ specificHumidityTransport()
         this->db().objectRegistry
         ::lookupObject<IOdictionary>("turbulenceProperties");
 
-    const word turbulenceMode = turbProp.lookup("simulationType");
+    const word turbulenceMode = word(turbProp.lookup("simulationType"));
 
     if (turbulenceMode == "RAS")
     {
