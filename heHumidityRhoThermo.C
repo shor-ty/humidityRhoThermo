@@ -25,8 +25,6 @@ License
 
 #include "heHumidityRhoThermo.H"
 #include "fvMatricesFwd.H"
-//#include "surfaceFieldsFwd.H"
-//#include "primitiveFieldsFwd.H"
 #include "fvCFD.H"
 #include "bound.H"
 

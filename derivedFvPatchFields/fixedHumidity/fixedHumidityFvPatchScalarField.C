@@ -106,20 +106,28 @@ fixedHumidityFvPatchScalarField
     {
         NotImplemented;
     }
-    else if (mode_ != "relative")
+    else if (mode_ == "specific")
+    {
+       Info<< "The specific value of the humidity is set to " << value_
+           << " g/kg"; 
+    }
+
+    else if (mode_ == "relative")
+    {
+        if (method_ != "buck" && method_ != "magnus")
+        {
+            FatalErrorInFunction
+                << "The specified method to calculate the saturation pressure is "
+                << "not supported: " << method_ << ". Supported methods are "
+                << "'buck' and 'magnus'."
+                << exit(FatalError);
+        }
+    }
+    else
     {
         FatalErrorInFunction
             << "The specified type is not supported '"
             << mode_ << "'. Supported are 'relative' or 'absolute'"
-            << exit(FatalError);
-    }
-
-    if (method_ != "buck" && method_ != "magnus")
-    {
-        FatalErrorInFunction
-            << "The specified method to calculate the saturation pressure is "
-            << "not supported: " << method_ << ". Supported methods are "
-            << "'buck' and 'magnus'."
             << exit(FatalError);
     }
 
@@ -185,67 +193,95 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
     const label patchi
 )
 {
-    //- a) Calc saturation pressure
     const scalarField& pfT = thermo.T().boundaryField()[patchi];
-    const scalarField& pfp = thermo.p().boundaryField()[patchi];
-    const scalarField theta = pfT - 273.15; //(Tpatch.size(), scalar(0));
 
-    scalarField pSatH2O(pfT.size(), scalar(0));
-
-    //  Standard method not as accurate as buck
-    if (method_ == "magnus")
+    if (mode_ == "relative")
     {
-        scalar pre1 = 611.2;
-        scalar pre2 = 17.62;
-        scalar value1 = 243.12;
+        //- a) Calc saturation pressure
+        const scalarField& pfp = thermo.p().boundaryField()[patchi];
+        const scalarField theta = pfT - 273.15; //(Tpatch.size(), scalar(0));
 
-        forAll(pSatH2O, facei)
+        scalarField pSatH2O(pfT.size(), scalar(0));
+
+        //  Standard method not as accurate as buck
+        if (method_ == "magnus")
         {
-            pSatH2O[facei] =
-                pre1*exp((pre2*(theta[facei]))/(value1+theta[facei]));
+            scalar pre1 = 611.2;
+            scalar pre2 = 17.62;
+            scalar value1 = 243.12;
+
+            forAll(pSatH2O, facei)
+            {
+                pSatH2O[facei] =
+                    pre1*exp((pre2*(theta[facei]))/(value1+theta[facei]));
+            }
+        }
+        //  Buck formula [1996]
+        //  Valid between 0 to 100 degC and 1013.25 hPa
+        //  Very accurate between 0 degC and 50 degC
+        else if (method_ == "buck")
+        {
+            scalar pre1 = 611.21;
+            scalar value1 = 18.678;
+            scalar value2 = 234.5;
+            scalar value3 = 257.14;
+
+            forAll(pSatH2O, facei)
+            {
+                scalar TdC = theta[facei];
+
+                pSatH2O[facei] =
+                    pre1*exp(((value1-TdC/value2)*TdC/(value3+TdC)));
+            }
+        }
+
+        //- b) Calc partial pressure of water
+        scalarField partialPressureH2O(pfT.size(), scalar(0));
+        partialPressureH2O = value_ * pSatH2O;
+
+        //- c) Calc density of water [kg/m^3]
+        scalarField rhoWater(pfT.size(), scalar(0));
+        {
+            scalar RH2O = 461.51;
+            rhoWater = partialPressureH2O/(RH2O*pfT);
+        }
+
+        //- d) Calc density of dry air [kg/m^3]
+        scalarField rhoDryAir(pfT.size(), scalar(0));
+        {
+            scalar RdryAir = 287.058;
+            rhoDryAir = (pfp - partialPressureH2O)/(RdryAir*pfT);
+        }
+
+        //- e) Calculate the specific humidity [kg/kg]
+        // scalarField specificHumidity(pfT.size(), scalar(0));
+
+        return rhoWater/(rhoWater+rhoDryAir);
+    }
+    else if (mode_ == "specific")
+    {
+        //- Convert [g/kg] to [kg/kg]
+        scalarField specificHumidity(pfT.size(), value_/1000);
+
+        return specificHumidity;
+    }
+    else 
+    {
+        Info<< "The mode " << mode_ << " is not available in the fixedHumidity"
+            << " boundary condition." << endl;
+
+        FatalErrorInFunction
+            << "The specified type is not supported '"
+            << mode_ << "'. Supported are 'relative' or 'specific'"
+            << exit(FatalError);
+
+        //- For compiling purposes
+        {
+            scalarField specificHumidity(pfT.size(), 0);
+
+            return specificHumidity;
         }
     }
-    //  Buck formula [1996]
-    //  Valid between 0 to 100 degC and 1013.25 hPa
-    //  Very accurate between 0 degC and 50 degC
-    else if (method_ == "buck")
-    {
-        scalar pre1 = 611.21;
-        scalar value1 = 18.678;
-        scalar value2 = 234.5;
-        scalar value3 = 257.14;
-
-        forAll(pSatH2O, facei)
-        {
-            scalar TdC = theta[facei];
-
-            pSatH2O[facei] =
-                pre1*exp(((value1-TdC/value2)*TdC/(value3+TdC)));
-        }
-    }
-
-    //- b) Calc partial pressure of water
-    scalarField partialPressureH2O(pfT.size(), scalar(0));
-    partialPressureH2O = value_ * pSatH2O;
-
-    //- c) Calc density of water [kg/m^3]
-    scalarField rhoWater(pfT.size(), scalar(0));
-    {
-        scalar RH2O = 461.51;
-        rhoWater = partialPressureH2O/(RH2O*pfT);
-    }
-
-    //- d) Calc density of dry air [kg/m^3]
-    scalarField rhoDryAir(pfT.size(), scalar(0));
-    {
-        scalar RdryAir = 287.058;
-        rhoDryAir = (pfp - partialPressureH2O)/(RdryAir*pfT);
-    }
-
-    //- e) Calculate the specific humidity [kg/kg]
-    scalarField specificHumidity(pfT.size(), scalar(0));
-
-    return rhoWater/(rhoWater+rhoDryAir);
 }
 
 
@@ -255,7 +291,7 @@ void Foam::fixedHumidityFvPatchScalarField::write(Ostream& os) const
     os.writeKeyword("mode") << mode_ << token::END_STATEMENT << nl;
     os.writeKeyword("method") << method_ << token::END_STATEMENT << nl;
     os.writeKeyword("humidity") << value_ << token::END_STATEMENT << nl;
-    writeEntry("value", os);
+    writeEntry(os, "value",  *this);
 }
 
 

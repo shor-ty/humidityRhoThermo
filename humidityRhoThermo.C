@@ -480,8 +480,19 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
             )
         );
 
-        method = word(
-            tmp.subDict("boundaryField").subDict(patchName).lookup("method"));
+        //- Check if it is relative
+
+        const word mode = word(
+            tmp.subDict("boundaryField").subDict(patchName).lookup("mode"));
+
+        if (mode == "relative")
+        {
+            method = word(
+                tmp.subDict("boundaryField").subDict
+                (
+                    patchName
+                ).lookup("method"));
+        }
     }
     else
     {

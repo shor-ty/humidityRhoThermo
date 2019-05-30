@@ -70,13 +70,16 @@ private:
 
     // Private data
 
-        //- Mode used | Absolute | Relative
+        //- Mode used | Specific | Relative | Absolute
+        //  specific := [g/kg]
+        //  relative := [%]
+        //  absolute := [g/m^3]
         word mode_;
 
         //- Calculation method | magnus | buck
         const word method_;
 
-        //- Value of humidity
+        //- Value of humidity [%] or [g/kg]
         scalar value_;
 
         //- Exchange value for thermodynamic database
