@@ -104,12 +104,13 @@ fixedHumidityFvPatchScalarField
 {
     if (mode_ == "absolute")
     {
-        NotImplemented;
+       Info<< "The specific value of the humidity is set to " << value_
+           << " g/m^3";
     }
     else if (mode_ == "specific")
     {
        Info<< "The specific value of the humidity is set to " << value_
-           << " g/kg"; 
+           << " g/kg";
     }
 
     else if (mode_ == "relative")
@@ -207,9 +208,9 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
         //  Standard method not as accurate as buck
         if (method_ == "magnus")
         {
-            scalar pre1 = 611.2;
-            scalar pre2 = 17.62;
-            scalar value1 = 243.12;
+            const scalar pre1 = 611.2;
+            const scalar pre2 = 17.62;
+            const scalar value1 = 243.12;
 
             forAll(pSatH2O, facei)
             {
@@ -222,10 +223,10 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
         //  Very accurate between 0 degC and 50 degC
         else if (method_ == "buck")
         {
-            scalar pre1 = 611.21;
-            scalar value1 = 18.678;
-            scalar value2 = 234.5;
-            scalar value3 = 257.14;
+            const scalar pre1 = 611.21;
+            const scalar value1 = 18.678;
+            const scalar value2 = 234.5;
+            const scalar value3 = 257.14;
 
             forAll(pSatH2O, facei)
             {
@@ -243,14 +244,14 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
         //- c) Calc density of water [kg/m^3]
         scalarField rhoWater(pfT.size(), scalar(0));
         {
-            scalar RH2O = 461.51;
+            const scalar RH2O = 461.51;
             rhoWater = partialPressureH2O/(RH2O*pfT);
         }
 
         //- d) Calc density of dry air [kg/m^3]
         scalarField rhoDryAir(pfT.size(), scalar(0));
         {
-            scalar RdryAir = 287.058;
+            const scalar RdryAir = 287.058;
             rhoDryAir = (pfp - partialPressureH2O)/(RdryAir*pfT);
         }
 
@@ -266,7 +267,36 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
 
         return specificHumidity;
     }
-    else 
+    else if (mode_ == "absolute")
+    {
+        //- b) Calc partial pressure of the water
+        const scalar RH2O = 461.51;
+        scalarField partialPressureH2O(pfT.size(), scalar(0));
+
+        //- The absolute humidity is in [g/m^3]. For the formulation we need
+        //  [kg/m^3] --> / 1000
+        partialPressureH2O = value_/1000 * pfT * RH2O;
+
+        //- c) Calc density of water [kg/m^3]
+        scalarField rhoWater(pfT.size(), scalar(0));
+        {
+            const scalar RH2O = 461.51;
+            rhoWater = partialPressureH2O/(RH2O*pfT);
+        }
+
+        //- d) Calc density of dry air [kg/m^3]
+        scalarField rhoDryAir(pfT.size(), scalar(0));
+        {
+            const scalar RdryAir = 287.058;
+            rhoDryAir = (pfp - partialPressureH2O)/(RdryAir*pfT);
+        }
+
+        //- e) Calculate the specific humidity [kg/kg]
+        //scalarField specificHumidity(pfT.size(), scalar(0));
+
+        return rhoWater/(rhoWater+rhoDryAir);
+    }
+    else
     {
         Info<< "The mode " << mode_ << " is not available in the fixedHumidity"
             << " boundary condition." << endl;
