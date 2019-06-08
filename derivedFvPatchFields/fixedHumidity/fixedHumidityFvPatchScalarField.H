@@ -34,9 +34,14 @@ Usage
     {
         type            fixedHumidity;
         mode            relative;
-        value           uniform 0.1;
+        humidity        0.4;
         method          buck;
+        value           uniform 0.1;
     }
+
+    mode    relative    humidity in [%]
+    mode    absolute    humidity in [g/m^3]
+    mode    specific    humidity in [g/kg]
     \endverbatim
 
 See also
