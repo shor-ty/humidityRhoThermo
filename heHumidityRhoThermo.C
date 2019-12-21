@@ -25,6 +25,7 @@ License
 
 #include "heHumidityRhoThermo.H"
 #include "fvMatricesFwd.H"
+#include "fvOptions.H"
 #include "fvCFD.H"
 #include "bound.H"
 
@@ -392,12 +393,16 @@ specificHumidityTransport()
         muEff = mu;
     }
 
+    // fvOptions
+    fv::options& fvOptions(fv::options::New(phi.mesh()));
+
     fvScalarMatrix specHumEqn
     (
         fvm::ddt(rho, specHum)
       + fvm::div(phi, specHum)
      ==
         fvm::laplacian(muEff, specHum)
+      + fvOptions(rho, specHum)
     );
 
     specHumEqn.relax();
