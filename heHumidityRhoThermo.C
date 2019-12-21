@@ -406,7 +406,9 @@ specificHumidityTransport()
     );
 
     specHumEqn.relax();
+    fvOptions.constrain(specHumEqn);
     specHumEqn.solve();
+    fvOptions.correct(specHum);
 
     //- To keep physical range
     //  Defined between 0 and max water content based on saturation pressure
