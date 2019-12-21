@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "heHumidityRhoThermo.H"
+#include "fvOptions.H"
 #include "fvMatricesFwd.H"
 #include "fvCFD.H"
 #include "bound.H"
@@ -449,16 +450,22 @@ specificHumidityTransport()
         muEff = mu;
     }
 
+    // fv::options
+    fv::options& fvOptions(fv::options::New(phi.mesh()));
+
     fvScalarMatrix specHumEqn
     (
         fvm::ddt(rho, specHum)
       + fvm::div(phi, specHum)
      ==
         fvm::laplacian(muEff, specHum)
+      + fvOptions(rho, specHum)
     );
 
     specHumEqn.relax();
+    fvOptions.constrain(specHumEqn);
     specHumEqn.solve();
+    fvOptions.correct(specHum);
 
     //- To keep physical range
     //  Defined between 0 and max water content based on saturation pressure
