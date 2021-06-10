@@ -1,0 +1,6 @@
+*.tex
+*.aux
+*.log
+*.toc
+*.foam
+*.swp
