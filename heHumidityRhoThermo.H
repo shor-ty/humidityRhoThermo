@@ -95,17 +95,23 @@ public:
         //- Calculate the relative humidity [-]
         virtual void relHumidity();
 
-        //- Calculate the water content [kg(water)/m^3(air)]
-        virtual void waterContent();
+        //- Calculate the water vapor content [kg(water)/m^3(air)]
+        virtual void waterVapor();
+
+        //- Calculate the maximum specific humidity (for stabilization)
+        virtual void maxSpecificHumidity();
+
+        //- Calculate the water mass [kg(water)]
+        virtual void waterMass();
 
         //- Conserved transport equation for the specific humidity [kg/kg]
         virtual void specificHumidityTransport();
 
-        //- Accounting for density change
-        virtual void densityChange();
+        //- Update density field
+        virtual void updateRho(volScalarField&);
 
-        //- Limit the specific humidity
-        virtual void limit();
+        //- Limit the specific humidity to the max range
+        virtual void limitMax();
 };
 
 

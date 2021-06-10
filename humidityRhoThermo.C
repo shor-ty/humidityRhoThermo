@@ -53,7 +53,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimDensity
@@ -101,11 +101,25 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimless
     ),
 
-    waterContent_
+    waterMass_
     (
         IOobject
         (
-            phasePropertyName("thermo:waterContent"),
+            phasePropertyName("thermo:waterMass"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimMass
+    ),
+
+    waterVapor_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:waterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -115,11 +129,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimDensity
     ),
 
-    maxWaterContent_
+    maxWaterVapor_
     (
         IOobject
         (
-            phasePropertyName("maxWaterContent"),
+            phasePropertyName("maxWaterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -218,7 +232,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
-            IOobject::AUTO_WRITE
+            IOobject::NO_WRITE
         ),
         mesh,
         dimDensity
@@ -266,11 +280,25 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimless
     ),
 
-    waterContent_
+    waterMass_
     (
         IOobject
         (
-            phasePropertyName("thermo:waterContent"),
+            phasePropertyName("thermo:waterMass"),
+            mesh.time().timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh,
+        dimMass
+    ),
+
+    waterVapor_
+    (
+        IOobject
+        (
+            phasePropertyName("thermo:waterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -280,11 +308,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimDensity
     ),
 
-    maxWaterContent_
+    maxWaterVapor_
     (
         IOobject
         (
-            phasePropertyName("thermo:maxWaterContent"),
+            phasePropertyName("thermo:maxWaterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -498,7 +526,7 @@ const Foam::word Foam::humidityRhoThermo::readMethod() const
     {
         WarningInFunction
             << "No fixedHumidity boundary condition found. Using the default "
-            << "method to calculate the saturation pressure\n" << endl;
+            << "method to calculate the saturation pressure: buck\n" << endl;
     }
 
     Info<< "Saturation pressure calculation based on "
