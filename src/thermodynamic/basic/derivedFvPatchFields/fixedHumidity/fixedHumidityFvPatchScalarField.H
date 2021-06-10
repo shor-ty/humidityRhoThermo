@@ -163,7 +163,7 @@ public:
             //- Calculate the specific humidity
             virtual const scalarField calcSpecificHumidity
             (
-                const basicThermo&,
+                const humidityRhoThermo&,
                 const label
             );
 

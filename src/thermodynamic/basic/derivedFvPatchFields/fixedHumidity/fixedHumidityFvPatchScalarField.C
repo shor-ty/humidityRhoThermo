@@ -25,11 +25,11 @@ License
 
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
-#include "basicThermo.H"
+#include "humidityRhoThermo.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fixedHumidityFvPatchScalarField.H"
 
-class heHumidityRhoThermo;
+class humidityRhoThermo;
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
@@ -109,7 +109,7 @@ fixedHumidityFvPatchScalarField
     else if (mode_ == "specific")
     {
        Info<< "The specific value of the humidity is set to " << value_
-           << " g/kg"; 
+           << " g/kg";
     }
 
     else if (mode_ == "relative")
@@ -131,7 +131,7 @@ fixedHumidityFvPatchScalarField
             << exit(FatalError);
     }
 
-    methodName_[0] = method_; 
+    methodName_[0] = method_;
 }
 
 
@@ -172,7 +172,9 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
         return;
     }
 
-    const basicThermo& thermo = basicThermo::lookupThermo(*this);
+    const humidityRhoThermo& thermo =
+       this->db().lookupObject<humidityRhoThermo>("thermophysicalProperties");
+
     const label patchi = patch().index();
 
     const scalarField specificHumidity = calcSpecificHumidity(thermo, patchi);
@@ -187,9 +189,10 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
 }
 
 
-const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumidity
+const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::
+calcSpecificHumidity
 (
-    const basicThermo& thermo,
+    const humidityRhoThermo& thermo,
     const label patchi
 )
 {
@@ -265,7 +268,7 @@ const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::calcSpecificHumid
 
         return specificHumidity;
     }
-    else 
+    else
     {
         Info<< "The mode " << mode_ << " is not available in the fixedHumidity"
             << " boundary condition." << endl;

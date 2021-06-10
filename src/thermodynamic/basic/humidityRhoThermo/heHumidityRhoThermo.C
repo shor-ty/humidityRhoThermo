@@ -138,23 +138,6 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::heHumidityRhoThermo
 }
 
 
-template<class BasicPsiThermo, class MixtureType>
-Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::heHumidityRhoThermo
-(
-    const fvMesh& mesh,
-    const word& phaseName,
-    const word& dictName
-)
-:
-    heThermo<BasicPsiThermo, MixtureType>(mesh, phaseName, dictName)
-{
-    calculate();
-
-    // First initialisation of the density
-    updateRho(this->rho_);
-}
-
-
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 template<class BasicPsiThermo, class MixtureType>
@@ -410,7 +393,7 @@ specificHumidityTransport()
 
     const IOdictionary& turbProp =
         this->db().objectRegistry
-        ::lookupObject<IOdictionary>("turbulenceProperties");
+        ::lookupObject<IOdictionary>("momentumTransport");
 
     const word turbulenceMode = turbProp.lookup("simulationType");
 
