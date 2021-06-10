@@ -6,7 +6,8 @@ EXE_INC = \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/radiation/lnInclude \
     -I$(LIB_SRC)/TurbulenceModels/turbulenceModels/lnInclude \
-    -I$(LIB_SRC)/TurbulenceModels/compressible/lnInclude
+    -I$(LIB_SRC)/TurbulenceModels/compressible/lnInclude \
+    -I$(realpath ../../../../src/thermodynamic/basic/lnInclude)
 
 EXE_LIBS = \
     -lfiniteVolume \
@@ -19,4 +20,6 @@ EXE_LIBS = \
     -lspecie \
     -lturbulenceModels \
     -lcompressibleTurbulenceModels \
-    -latmosphericModels
+    -latmosphericModels \
+    -L$(FOAM_USER_LIBBIN) \
+    -lhumidityRhoThermo
