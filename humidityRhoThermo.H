@@ -72,11 +72,14 @@ protected:
         //- Relative humidity [-]
         volScalarField relHum_;
 
-        //- Water content [kg(water)/m^3(Air)]
-        volScalarField waterContent_;
+        //- Water mass [kg]
+        volScalarField waterMass_;
 
-        //- Max water content [kg(water)/m^3(Air)] for stabilization
-        volScalarField maxWaterContent_;
+        //- Water vapor content [kg(water)/m^3(Air)]
+        volScalarField waterVapor_;
+
+        //- Max water vapor possible [kg(water)/m^3(Air)] for stabilization
+        volScalarField maxWaterVapor_;
 
         //- Specific humidity [kg/kg] (water/air)
         volScalarField specificHumidity_;
