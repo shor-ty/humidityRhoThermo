@@ -1,15 +1,8 @@
-#include "createRDeltaT.H"
-
 Info<< "Reading thermophysical properties\n" << endl;
 
-autoPtr<humidityRhoThermo> pThermo
-(
-    humidityRhoThermo::New(mesh)
-);
+autoPtr<humidityRhoThermo> pThermo(humidityRhoThermo::New(mesh));
 humidityRhoThermo& thermo = pThermo();
 thermo.validate(args.executable(), "h", "e");
-
-volScalarField& p = thermo.p();
 
 volScalarField rho
 (
@@ -23,6 +16,8 @@ volScalarField rho
     ),
     thermo.rho()
 );
+
+volScalarField& p = thermo.p();
 
 Info<< "Reading field U\n" << endl;
 volVectorField U
@@ -40,10 +35,11 @@ volVectorField U
 
 #include "compressibleCreatePhi.H"
 
+
 Info<< "Creating turbulence model\n" << endl;
-autoPtr<compressible::momentumTransportModel> turbulence
+autoPtr<compressible::turbulenceModel> turbulence
 (
-    compressible::momentumTransportModel::New
+    compressible::turbulenceModel::New
     (
         rho,
         U,
@@ -52,17 +48,10 @@ autoPtr<compressible::momentumTransportModel> turbulence
     )
 );
 
-Info<< "Creating thermophysical transport model\n" << endl;
-autoPtr<fluidThermophysicalTransportModel> thermophysicalTransport
-(
-    fluidThermophysicalTransportModel::New(turbulence(), thermo)
-);
-
 
 #include "readGravitationalAcceleration.H"
 #include "readhRef.H"
 #include "gh.H"
-#include "readpRef.H"
 
 
 Info<< "Reading field p_rgh\n" << endl;
@@ -80,16 +69,22 @@ volScalarField p_rgh
 );
 
 // Force p_rgh to be consistent with p
-p_rgh = p - rho*gh - pRef;
+p_rgh = p - rho*gh;
 
-pressureControl pressureControl
-(
-    p,
-    p_rgh,
-    rho,
-    pimple.dict(),
-    thermo.incompressible()
-);
+label pRefCell = 0;
+scalar pRefValue = 0.0;
+
+if (thermo.incompressible())
+{
+    setRefCell
+    (
+        p,
+        p_rgh,
+        pimple.dict(),
+        pRefCell,
+        pRefValue
+    );
+}
 
 mesh.setFluxRequired(p_rgh.name());
 
@@ -103,13 +98,11 @@ volScalarField dpdt
         mesh
     ),
     mesh,
-    dimensionedScalar(p.dimensions()/dimTime, 0)
+    dimensionedScalar("dpdt", p.dimensions()/dimTime, 0)
 );
 
 Info<< "Creating field kinetic energy K\n" << endl;
 volScalarField K("K", 0.5*magSqr(U));
-
-dimensionedScalar initialMass = fvc::domainIntegrate(rho);
 
 #include "createMRF.H"
 #include "createRadiationModel.H"
