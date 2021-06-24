@@ -4,3 +4,8 @@
 *.toc
 *.foam
 *.swp
+*.o
+options
+*.dep
+sourceFiles
+variables
