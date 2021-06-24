@@ -83,11 +83,18 @@ public:
 
     // Member functions
 
+        //- Initialize the thermo:specificHumidity using the thermo:relHum field
+        virtual void initialize();
+
         //- Update properties
         virtual void correct();
 
         //- Calculate the saturation pressure of H2O [Pa]
         virtual void pSatH2O();
+
+        //- Calculate partial pressure of water saturation pressure [Pa]
+        //  based from the relative humidity (only for initialization)
+        virtual void partialPressureH2OFromRelHumidity();
 
         //- Calculate partial pressure of water saturation pressure [Pa]
         virtual void partialPressureH2O();
@@ -106,6 +113,10 @@ public:
 
         //- Conserved transport equation for the specific humidity [kg/kg]
         virtual void specificHumidityTransport();
+
+        //- Initialize the specific humidity field by using the relative
+        //  humidity field
+        virtual void initialSpecificHumidityFromRelHumidity();
 
         //- Update density field
         virtual void updateRho(volScalarField&);

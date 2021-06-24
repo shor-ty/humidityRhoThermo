@@ -42,7 +42,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
     scalarField& muCells = this->mu_.primitiveFieldRef();
     scalarField& alphaCells = this->alpha_.primitiveFieldRef();
 
-
     forAll(TCells, celli)
     {
         const typename MixtureType::thermoType& mixture_ =
@@ -56,7 +55,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
         );
 
         psiCells[celli] = mixture_.psi(pCells[celli], TCells[celli]);
-
         muCells[celli] = mixture_.mu(pCells[celli], TCells[celli]);
         alphaCells[celli] = mixture_.alphah(pCells[celli], TCells[celli]);
     }
@@ -96,7 +94,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
                     this->patchFaceMixture(patchi, facei);
 
                 phe[facei] = mixture_.HE(pp[facei], pT[facei]);
-
                 ppsi[facei] = mixture_.psi(pp[facei], pT[facei]);
                 pmu[facei] = mixture_.mu(pp[facei], pT[facei]);
                 palpha[facei] = mixture_.alphah(pp[facei], pT[facei]);
@@ -110,7 +107,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
                     this->patchFaceMixture(patchi, facei);
 
                 pT[facei] = mixture_.THE(phe[facei], pp[facei], pT[facei]);
-
                 ppsi[facei] = mixture_.psi(pp[facei], pT[facei]);
                 pmu[facei] = mixture_.mu(pp[facei], pT[facei]);
                 palpha[facei] = mixture_.alphah(pp[facei], pT[facei]);
@@ -131,6 +127,11 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::heHumidityRhoThermo
 :
     heThermo<BasicPsiThermo, MixtureType>(mesh, phaseName)
 {
+    if (this->initWithRelHumidity_)
+    {
+        initialize();
+    }
+
     calculate();
 
     // First initialisation of the density
@@ -146,6 +147,19 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::~heHumidityRhoThermo()
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
+
+template<class BasicPsiThermo, class MixtureType>
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::initialize()
+{
+    pSatH2O();
+
+    partialPressureH2OFromRelHumidity();
+
+    initialSpecificHumidityFromRelHumidity();
+
+    std::terminate();
+}
+
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
@@ -294,6 +308,19 @@ partialPressureH2O()
 
 
 template<class BasicPsiThermo, class MixtureType>
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::
+partialPressureH2OFromRelHumidity()
+{
+    const volScalarField& relHum = this->relHum_;
+    const volScalarField& pSatH2O = this->pSatH2O_;
+
+    volScalarField& partialPressureH2O = this->partialPressureH2O_;
+
+    partialPressureH2O = relHum * pSatH2O;
+}
+
+
+template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::relHumidity()
 {
     volScalarField& relHum = this->relHum_;
@@ -438,6 +465,89 @@ specificHumidityTransport()
 
 
 template<class BasicPsiThermo, class MixtureType>
+void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::
+initialSpecificHumidityFromRelHumidity()
+{
+    const volScalarField& pPH2O = this->partialPressureH2O_;
+    const volScalarField& T = this->T_;
+    const volScalarField& p = this->p_;
+    volScalarField& specHum = this->specificHumidity_;
+
+    // Specific gas constant dry air [J/kg/K]
+    const dimensionedScalar RdryAir
+    (
+        "RdryAir",
+        dimensionSet(0,2,-2,-1,0,0,0),
+        scalar(287.058)
+    );
+
+    // Specific gas constant water vapor [J/kg/K]
+    const dimensionedScalar RwaterVapor
+    (
+        "RwaterVapor",
+        dimensionSet(0,2,-2,-1,0,0,0),
+        scalar(461.51)
+    );
+
+    // Initialize the specific humidity field
+    scalarField& specHumCells = specHum.primitiveFieldRef();
+
+    forAll(specHumCells, celli)
+    {
+        specHumCells[celli] =
+            pow
+            (
+                1
+              - (1- p[celli]/(pPH2O[celli]+VSMALL))
+              * RwaterVapor.value()/RdryAir.value(),
+               -1
+            );
+    }
+
+
+    // Assign the same boundary conditions
+    const volScalarField::Boundary& relHumBf = this->relHum_.boundaryField();
+    volScalarField::Boundary& specHumBf = specHum.boundaryFieldRef();
+
+    // Not the best way
+    forAll(specHumBf, patchi)
+    {
+        if
+        (
+            relHumBf[patchi].fixesValue()
+         && (relHumBf[patchi].type() != "fixedHumidity")
+        )
+        {
+            FatalErrorInFunction
+                << "The boundary type '" << relHumBf[patchi].type() << "' "
+                << "for the thermo:relHum field is not allowed"
+                << "Use the 'fixedHumidity' boundary condition instead"
+                << exit(FatalError);
+        }
+    }
+
+    // Update the boundary data
+    forAll(specHumBf, patchi)
+    {
+        fvPatchScalarField& pspecHum = specHumBf[patchi];
+
+        forAll(pspecHum, facei)
+        {
+            pspecHum[facei] =
+                pow
+                (
+                    1
+                  - (1- p[facei]/(pPH2O[facei]+VSMALL))
+                  * RwaterVapor.value()/RdryAir.value(),
+                   -1
+                );
+        }
+    }
+
+    specHum.write();
+}
+
+template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::updateRho
 (
     volScalarField& rho
@@ -484,7 +594,7 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::updateRho
 
         forAll(prho, facei)
         {
-            prho[facei] = 
+            prho[facei] =
                 1/T[facei]
               * (
                     (p[facei] - pPH2O[facei])

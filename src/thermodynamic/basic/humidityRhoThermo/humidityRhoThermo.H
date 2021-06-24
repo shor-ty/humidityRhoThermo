@@ -93,6 +93,9 @@ protected:
         //- Partial pressure calculation method
         mutable word method_;
 
+        //- Initialize the specificHumidity using the relHum field
+        bool initWithRelHumidity_;
+
 
     // Protected Member Functions
 
@@ -182,7 +185,9 @@ public:
 
         // Read
 
-            virtual const word readMethod() const;
+            virtual void readMethod();
+
+            virtual void readOrInitSpecificHumidity();
 };
 
 
