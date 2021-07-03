@@ -93,7 +93,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             phasePropertyName("thermo:relHum"),
             mesh.time().timeName(),
             mesh,
-            IOobject::NO_READ,
+            IOobject::READ_IF_PRESENT,
             IOobject::AUTO_WRITE
         ),
         mesh,
@@ -132,7 +132,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
     (
         IOobject
         (
-            phasePropertyName("maxWaterVapor"),
+            phasePropertyName("thermo:maxWaterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -142,18 +142,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimDensity
     ),
 
-    specificHumidity_
-    (
-        IOobject
-        (
-            phasePropertyName("thermo:specificHumidity"),
-            mesh.time().timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    ),
+    specificHumidityPtr_(nullptr),
 
     maxSpecificHumidity_
     (
@@ -197,6 +186,10 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimPressure
     ),
 
+    method_("buck"),
+
+    initWithRelHumidity_(false),
+
     muEff_
     (
         IOobject
@@ -211,7 +204,10 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimensionSet(1,-1,-1,0,0,0,0)
     )
 {
-    method_ = readMethod();
+    // Read or build the specificHumidity field
+    readOrInitSpecificHumidity();
+
+    readMethod();
 }
 
 
@@ -272,7 +268,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             phasePropertyName("thermo:relHum"),
             mesh.time().timeName(),
             mesh,
-            IOobject::NO_READ,
+            IOobject::READ_IF_PRESENT,
             IOobject::AUTO_WRITE
         ),
         mesh,
@@ -321,19 +317,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimDensity
     ),
 
-    specificHumidity_
-    (
-        IOobject
-        (
-            phasePropertyName("thermo:specificHumidity"),
-            mesh.time().timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh,
-        dimless
-    ),
+    specificHumidityPtr_(nullptr),
 
     maxSpecificHumidity_
     (
@@ -377,6 +361,10 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimPressure
     ),
 
+    method_("buck"),
+
+    initWithRelHumidity_(false),
+
     muEff_
     (
         IOobject
@@ -391,7 +379,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimensionSet(1,-1,-1,0,0,0,0)
     )
 {
-    method_ = readMethod();
+    // Read or build the specificHumidity field
+    readOrInitSpecificHumidity();
+
+    // Set the method regarding the calulation of the pSat equation
+    readMethod();
 }
 
 
@@ -452,7 +444,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
             phasePropertyName("thermo:relHum"),
             mesh.time().timeName(),
             mesh,
-            IOobject::NO_READ,
+            IOobject::READ_IF_PRESENT,
             IOobject::AUTO_WRITE
         ),
         mesh,
@@ -491,7 +483,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
     (
         IOobject
         (
-            phasePropertyName("maxWaterVapor"),
+            phasePropertyName("thermo:maxWaterVapor"),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -501,18 +493,7 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimDensity
     ),
 
-    specificHumidity_
-    (
-        IOobject
-        (
-            phasePropertyName("thermo:specificHumidity"),
-            mesh.time().timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    ),
+    specificHumidityPtr_(nullptr),
 
     maxSpecificHumidity_
     (
@@ -556,6 +537,10 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimPressure
     ),
 
+    method_("buck"),
+
+    initWithRelHumidity_(false),
+
     muEff_
     (
         IOobject
@@ -570,7 +555,11 @@ Foam::humidityRhoThermo::humidityRhoThermo
         dimensionSet(1,-1,-1,0,0,0,0)
     )
 {
-    method_ = readMethod();
+    // Read or build the specificHumidity field
+    readOrInitSpecificHumidity();
+
+    // Set the method regarding the calulation of the pSat equation
+    readMethod();
 }
 
 
@@ -658,53 +647,69 @@ Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::mu(const label patchi) con
 }
 
 
-const Foam::word Foam::humidityRhoThermo::readMethod() const
+void Foam::humidityRhoThermo::readMethod()
 {
-    const wordList& bTsH = this->specificHumidity_.boundaryField().types();
-
-    //- Search if fixedHumidity bc is used
-    bool found = false;
-    forAll(bTsH, patchI)
+    //- Change method with respect to fixedHumidity BC
+    if (this->rho_.mesh().foundObject<IOList<word>>("methodName"))
     {
-        if (bTsH[patchI] == "fixedHumidity")
-        {
-            found = true;
-            break;
-        }
+        method_ =
+            this->rho_.mesh().lookupObject<IOList<word>>("methodName")[0];
+
+        Info<< "Saturation pressure calculation based on "
+            << method_ << "\n" << endl;
+    }
+}
+
+
+void Foam::humidityRhoThermo::readOrInitSpecificHumidity()
+{
+    // Create an IO object to check the header
+    IOobject tmpSpecificHumidityIO
+    (
+        phasePropertyName("thermo:specificHumidity"),
+        this->T_.mesh().time().timeName(),
+        this->T_.mesh(),
+        IOobject::READ_IF_PRESENT,
+        IOobject::AUTO_WRITE
+    );
+
+    // specificHumidity field is available and was read before
+    if (tmpSpecificHumidityIO.typeHeaderOk<volScalarField>())
+    {
+        Info<< "Initilize humidity by using the thermo:specificHumidity field\n"
+            << endl;
+
+        specificHumidityPtr_.reset
+        (
+            new volScalarField
+            (
+                tmpSpecificHumidityIO,
+                this->T_.mesh(),
+                dimless
+            )
+        );
+
+        return;
     }
 
-    //- Default method
-    word method = "buck";
-
-    if (found)
+    // Relative humidity field not provided
+    if (!relHum_.typeHeaderOk<volScalarField>())
     {
-        if
-        (
-            this->specificHumidity_.mesh().foundObject<IOList<word>>
-            (
-                "methodName"
-            )
-        )
-        {
-            Info<< "inside " << endl;
-            method =
-                this->specificHumidity_.mesh().lookupObject<IOList<word>>
-                (
-                    "methodName"
-                )[0];
-        }
+        FatalErrorInFunction
+            << "Neither the thermo:specificHumidity or the thermo:relHum "
+            << "field was provided in the time-folder"
+            << exit(FatalError);
     }
     else
     {
-        WarningInFunction
-            << "No fixedHumidity boundary condition found. Using the default "
-            << "method to calculate the saturation pressure: buck\n" << endl;
+        initWithRelHumidity_ = true;
+
+        Info<< "Initilize humidity by using the thermo:relHum field\n"
+            << endl;
+
+        // Initialization in the heHumidityRhoThermo.C field as we have
+        // access to the calculation methods
     }
-
-    Info<< "Saturation pressure calculation based on "
-        << method << "\n" << endl;
-
-    return method;
 }
 
 

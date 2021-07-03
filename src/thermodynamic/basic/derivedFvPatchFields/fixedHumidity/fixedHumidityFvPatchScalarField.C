@@ -102,6 +102,9 @@ fixedHumidityFvPatchScalarField
         1
     )
 {
+    // Default method to calculate the saturation pressure
+    methodName_[0] = "buck";
+
     if (mode_ == "absolute")
     {
        Info<< "The specific value of the humidity is set to " << value_
@@ -123,6 +126,9 @@ fixedHumidityFvPatchScalarField
                 << "'buck' and 'magnus'."
                 << exit(FatalError);
         }
+
+        // Set the method for the thermodynamic lib
+        methodName_[0] = method_;
     }
     else
     {
@@ -131,8 +137,6 @@ fixedHumidityFvPatchScalarField
             << mode_ << "'. Supported are 'relative' or 'absolute'"
             << exit(FatalError);
     }
-
-    methodName_[0] = method_;
 }
 
 

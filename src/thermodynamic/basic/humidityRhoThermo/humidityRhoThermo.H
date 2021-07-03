@@ -82,7 +82,7 @@ protected:
         volScalarField maxWaterVapor_;
 
         //- Specific humidity [kg/kg] (water/air)
-        volScalarField specificHumidity_;
+        autoPtr<volScalarField> specificHumidityPtr_;
 
         //- Max specific humidity [kg/kg] (water/air)
         volScalarField maxSpecificHumidity_;
@@ -95,6 +95,9 @@ protected:
 
         //- Partial pressure calculation method
         mutable word method_;
+
+        //- Initialize the specificHumidity using the relHum field
+        bool initWithRelHumidity_;
 
 
     // Protected Member Functions
@@ -224,7 +227,9 @@ public:
 
         // Read
 
-            virtual const word readMethod() const;
+            virtual void readMethod();
+
+            virtual void readOrInitSpecificHumidity();
 };
 
 
