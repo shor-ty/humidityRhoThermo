@@ -217,7 +217,7 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::~heHumidityRhoThermo()
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::initialize()
 {
-    Info<< "Initialize the thermo:specificHumidity field\n" << endl;
+    Info<< "Initialize the specificHumidity field\n" << endl;
 
     pSatH2O();
 
@@ -579,7 +579,7 @@ initialSpecificHumidityFromRelHumidity()
         {
             FatalErrorInFunction
                 << "The boundary type '" << relHumBf[patchi].type() << "' "
-                << "for the thermo:relHum field is not allowed"
+                << "for the relHum field is not allowed"
                 << "Use the 'fixedHumidity' boundary condition instead"
                 << exit(FatalError);
         }
@@ -596,7 +596,7 @@ initialSpecificHumidityFromRelHumidity()
         (
             IOobject
             (
-                "thermo:specificHumidity",
+                "specificHumidity",
                 this->T_.mesh().time().timeName(),
                 this->T_.mesh(),
                 IOobject::NO_READ,
