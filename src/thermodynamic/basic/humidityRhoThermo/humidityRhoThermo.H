@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2017 OpenFOAM Foundation
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,10 @@ Class
     Foam::humidityRhoThermo
 
 Description
-    Basic thermodynamic properties based on density
+    Base-class for fluid thermodynamic properties based on density.
+
+See also
+    Foam::basicThermo
 
 SourceFiles
     humidityRhoThermo.C
@@ -44,14 +47,97 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class humidityRhoThermo Declaration
+                          Class humidityRhoThermo Declaration
 \*---------------------------------------------------------------------------*/
 
 class humidityRhoThermo
 :
-    public fluidThermo
+    virtual public fluidThermo
 {
+public:
 
+    // Public Classes
+
+        //- Forward declare the implementation class
+        class implementation;
+
+        //- Forward declare the composite class
+        class composite;
+
+
+    //- Runtime type information
+    TypeName("humidityRhoThermo");
+
+
+    //- Declare run-time constructor selection table
+    declareRunTimeSelectionTable
+    (
+        autoPtr,
+        humidityRhoThermo,
+        fvMesh,
+        (const fvMesh& mesh, const word& phaseName),
+        (mesh, phaseName)
+    );
+
+
+    // Selectors
+
+        //- Standard selection based on fvMesh
+        static autoPtr<humidityRhoThermo> New
+        (
+            const fvMesh&,
+            const word& phaseName=word::null
+        );
+
+
+    //- Destructor
+    virtual ~humidityRhoThermo();
+
+
+    // Member Functions
+
+        // Fields derived from thermodynamic state variables
+
+            //- Density [kg/m^3]
+            virtual tmp<volScalarField> rho() const = 0;
+
+            //- Density for patch [kg/m^3]
+            virtual tmp<scalarField> rho(const label patchi) const = 0;
+
+            //- Return non-const access to the local density field [kg/m^3]
+            virtual volScalarField& rho() = 0;
+
+            //- Old-time density [kg/m^3]
+            virtual tmp<volScalarField> rho0() const = 0;
+
+            //- Add the given density correction to the density field.
+            //  Used to update the density field following pressure solution
+            virtual void correctRho(const volScalarField& deltaRho) = 0;
+
+            //- Compressibility [s^2/m^2]
+            virtual const volScalarField& psi() const = 0;
+
+
+        // Access to transport state variables
+
+            //- Dynamic viscosity of mixture [kg/m/s]
+            virtual tmp<volScalarField> mu() const = 0;
+
+            //- Dynamic viscosity of mixture for patch [kg/m/s]
+            virtual tmp<scalarField> mu(const label patchi) const = 0;
+
+
+};
+
+
+/*---------------------------------------------------------------------------*\
+                  Class humidityRhoThermo::implementation Declaration
+\*---------------------------------------------------------------------------*/
+
+class humidityRhoThermo::implementation
+:
+    virtual public humidityRhoThermo
+{
 protected:
 
     // Protected data
@@ -96,66 +182,29 @@ protected:
         //- Initialize the specificHumidity using the relHum field
         bool initWithRelHumidity_;
 
-
-    // Protected Member Functions
-
-        //- Construct as copy (not implemented)
-        humidityRhoThermo(const humidityRhoThermo&);
-
-
     // Turbulence fields
 
         volScalarField muEff_;
 
-
 public:
-
-    //- Runtime type information
-    TypeName("humidityRhoThermo");
-
-
-    //- Declare run-time constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        humidityRhoThermo,
-        fvMesh,
-        (const fvMesh& mesh, const word& phaseName),
-        (mesh, phaseName)
-    );
-
 
     // Constructors
 
         //- Construct from mesh and phase name
-        humidityRhoThermo
-        (
-            const fvMesh&,
-            const word& phaseName
-        );
+        implementation(const fvMesh&, const word& phaseName);
 
         //- Construct from mesh, dictionary and phase name
-        humidityRhoThermo
-        (
-            const fvMesh&,
-            const dictionary&,
-            const word& phaseName
-        );
+        implementation(const fvMesh&, const dictionary&, const word& phaseName);
 
-
-    //- Selector
-    static autoPtr<humidityRhoThermo> New
-    (
-        const fvMesh&,
-        const word& phaseName=word::null
-    );
+        //- Disallow default bitwise copy construction
+        implementation(const implementation&) = delete;
 
 
     //- Destructor
-    virtual ~humidityRhoThermo();
+    virtual ~implementation();
 
 
-    // Member functions
+    // Member Functions
 
         // Fields derived from thermodynamic state variables
 
@@ -168,12 +217,16 @@ public:
             //- Return non-const access to the local density field [kg/m^3]
             virtual volScalarField& rho();
 
+            //- Old-time density [kg/m^3]
+            virtual tmp<volScalarField> rho0() const;
+
             //- Add the given density correction to the density field.
             //  Used to update the density field following pressure solution
             virtual void correctRho(const volScalarField& deltaRho);
 
             //- Compressibility [s^2/m^2]
             virtual const volScalarField& psi() const;
+
 
         // Access to transport state variables
 
@@ -182,12 +235,44 @@ public:
 
             //- Dynamic viscosity of mixture for patch [kg/m/s]
             virtual tmp<scalarField> mu(const label patchi) const;
-
         // Read
 
             virtual void readMethod();
 
             virtual void readOrInitSpecificHumidity();
+
+    // Member Operators
+
+        //- Disallow default bitwise assignment
+        void operator=(const implementation&) = delete;
+};
+
+
+/*---------------------------------------------------------------------------*\
+                    Class humidityRhoThermo::composite Declaration
+\*---------------------------------------------------------------------------*/
+
+class humidityRhoThermo::composite
+:
+    public basicThermo::implementation,
+    public fluidThermo::implementation,
+    public humidityRhoThermo::implementation
+{
+public:
+
+    // Constructors
+
+        //- Construct from mesh and phase name
+        composite
+        (
+            const fvMesh& mesh,
+            const word& phaseName
+        )
+        :
+            basicThermo::implementation(mesh, phaseName),
+            fluidThermo::implementation(mesh, phaseName),
+            humidityRhoThermo::implementation(mesh, phaseName)
+        {}
 };
 
 

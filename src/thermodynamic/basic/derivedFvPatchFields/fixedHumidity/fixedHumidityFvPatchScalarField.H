@@ -118,8 +118,8 @@ public:
             const fvPatchFieldMapper&
         );
 
-        //- Construct as copy
-        fixedHumidityFvPatchScalarField
+/*         //- Construct as copy
+         fixedHumidityFvPatchScalarField
         (
             const fixedHumidityFvPatchScalarField&
         );
@@ -132,7 +132,7 @@ public:
                 new fixedHumidityFvPatchScalarField(*this)
             );
         }
-
+ */
         //- Construct as copy setting internal field reference
         fixedHumidityFvPatchScalarField
         (

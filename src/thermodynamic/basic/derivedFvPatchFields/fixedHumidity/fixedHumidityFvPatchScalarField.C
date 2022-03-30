@@ -41,7 +41,7 @@ fixedHumidityFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedValueFvPatchScalarField(p, iF),
+    fixedValueFvPatchField<scalar>(p, iF),
     mode_("relative"),
     method_("buck"),
     value_(0.0),
@@ -69,7 +69,7 @@ fixedHumidityFvPatchScalarField
     const fvPatchFieldMapper& mapper
 )
 :
-    fixedValueFvPatchScalarField(ptf, p, iF, mapper),
+    fixedValueFvPatchField<scalar>(ptf, p, iF, mapper),
     mode_(ptf.mode_),
     method_(ptf.method_),
     value_(ptf.value_),
@@ -85,7 +85,7 @@ fixedHumidityFvPatchScalarField
     const dictionary& dict
 )
 :
-    fixedValueFvPatchScalarField(p, iF, dict),
+    fixedValueFvPatchField<scalar>(p, iF, dict),
     mode_(dict.lookupOrDefault<word>("mode", "relative")),
     method_(dict.lookupOrDefault<word>("method", "buck")),
     value_(readScalar(dict.lookup("humidity"))),
@@ -139,19 +139,19 @@ fixedHumidityFvPatchScalarField
 }
 
 
-Foam::fixedHumidityFvPatchScalarField::
+/* Foam::fixedHumidityFvPatchScalarField::
 fixedHumidityFvPatchScalarField
 (
     const fixedHumidityFvPatchScalarField& tppsf
 )
 :
-    fixedValueFvPatchScalarField(tppsf),
+    fixedValueFvPatchField<scalar>(tppsf),
     mode_(tppsf.mode_),
     method_(tppsf.method_),
     value_(tppsf.value_),
     methodName_(tppsf.methodName_)
 {}
-
+ */
 
 Foam::fixedHumidityFvPatchScalarField::
 fixedHumidityFvPatchScalarField
@@ -160,7 +160,7 @@ fixedHumidityFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedValueFvPatchScalarField(tppsf, iF),
+    fixedValueFvPatchField<scalar>(tppsf, iF),
     mode_(tppsf.mode_),
     method_(tppsf.method_),
     methodName_(tppsf.methodName_)
@@ -189,7 +189,7 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
     //Tw.evaluate();
     operator==(specificHumidity);
 
-    fixedValueFvPatchScalarField::updateCoeffs();
+    fixedValueFvPatchField<scalar>::updateCoeffs();
 }
 
 
@@ -294,7 +294,7 @@ calcSpecificHumidity
 
 void Foam::fixedHumidityFvPatchScalarField::write(Ostream& os) const
 {
-    fvPatchScalarField::write(os);
+    fvPatchField<scalar>::write(os);
     os.writeKeyword("mode") << mode_ << token::END_STATEMENT << nl;
     os.writeKeyword("method") << method_ << token::END_STATEMENT << nl;
     os.writeKeyword("humidity") << value_ << token::END_STATEMENT << nl;

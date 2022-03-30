@@ -53,7 +53,7 @@ if (pimple.transonic())
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
       + fvc::div(phiHbyA) + fvm::div(phid, p_rgh)
      ==
-        fvOptions(psi, p_rgh, rho.name())
+        fvModels.source(psi, p_rgh, rho.name())
     );
 
     while (pimple.correctNonOrthogonal())
@@ -65,8 +65,8 @@ if (pimple.transonic())
 
         p_rghEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         p_rghEqn.solve();
@@ -84,7 +84,7 @@ else
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
       + fvc::div(phiHbyA)
      ==
-        fvOptions(psi, p_rgh, rho.name())
+        fvModels.source(psi, p_rgh, rho.name())
     );
 
     while (pimple.correctNonOrthogonal())
@@ -93,8 +93,8 @@ else
 
         p_rghEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         p_rghEqn.solve();
@@ -111,7 +111,7 @@ if (mesh.steady())
 }
 else
 {
-    const bool limitedp = pressureControl.limit(p);
+    const bool limitedp = fvConstraints.constrain(p);
 
     // Thermodynamic density update
     thermo.correctRho(psi*p - psip0);
@@ -132,12 +132,12 @@ p_rgh.relax();
 // calculated from the relaxed pressure
 U = HbyA + rAU*fvc::reconstruct((phig + p_rghEqn.flux())/rhorAUf);
 U.correctBoundaryConditions();
-fvOptions.correct(U);
+fvConstraints.constrain(U);
 K = 0.5*magSqr(U);
 
 if (mesh.steady())
 {
-    pressureControl.limit(p);
+    fvConstraints.constrain(p);
 }
 
 // For steady closed-volume compressible cases adjust the pressure level

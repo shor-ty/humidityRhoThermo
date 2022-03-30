@@ -19,16 +19,16 @@
      ==
         rho*(U&g)
       + radiation->Sh(thermo, he)
-      + fvOptions(rho, he)
+      + fvModels.source(rho, he)
     );
 
     EEqn.relax();
 
-    fvOptions.constrain(EEqn);
+    fvConstraints.constrain(EEqn);
 
     EEqn.solve();
 
-    fvOptions.correct(he);
+    fvConstraints.constrain(he);
 
     thermo.correct();
     radiation->correct();

@@ -1,6 +1,7 @@
 EXE_INC = \
     -I. \
     -I$(LIB_SRC)/../applications/solvers/compressible/rhoPimpleFoam \
+    -I$(LIB_SRC)/transportModels/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
     -I$(LIB_SRC)/radiationModels/lnInclude \
     -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
@@ -19,13 +20,13 @@ EXE_LIBS = \
     -lradiationModels \
     -lspecie \
     -lmomentumTransportModels \
-    -lfluidThermoMomentumTransportModels \
     -lthermophysicalTransportModels \
     -lfiniteVolume \
     -ldynamicFvMesh \
     -ltopoChangerFvMesh \
     -lmeshTools \
     -lsampling \
-    -lfvOptions \
+    -lfvModels \
+    -lfvConstraints \
     -L$(FOAM_USER_LIBBIN) \
     -lhumidityRhoThermo
