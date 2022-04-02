@@ -79,9 +79,6 @@ volScalarField p_rgh
     mesh
 );
 
-// Force p_rgh to be consistent with p
-p_rgh = p - rho*gh - pRef;
-
 pressureReference pressureReference
 (
     p,
@@ -124,6 +121,6 @@ volScalarField K("K", 0.5*magSqr(U));
 dimensionedScalar initialMass = fvc::domainIntegrate(rho);
 
 #include "createMRF.H"
-#include "createRadiationModel.H"
 #include "createFvModels.H"
 #include "createFvConstraints.H"
+#include "checkRadiationModel.H"

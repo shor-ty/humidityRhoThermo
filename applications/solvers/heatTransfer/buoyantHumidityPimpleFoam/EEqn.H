@@ -18,7 +18,6 @@
       + thermophysicalTransport->divq(he)
      ==
         rho*(U&g)
-      + radiation->Sh(thermo, he)
       + fvModels.source(rho, he)
     );
 
@@ -31,5 +30,4 @@
     fvConstraints.constrain(he);
 
     thermo.correct();
-    radiation->correct();
 }
