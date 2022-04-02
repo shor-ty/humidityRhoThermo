@@ -502,6 +502,7 @@ specificHumidityTransport()
     specHumEqn.relax();
     fvConstraints.constrain(specHumEqn);
     specHumEqn.solve();
+    fvConstraints.constrain(specHum);
     //fvModels.correct();
 
     //- To keep physical range
