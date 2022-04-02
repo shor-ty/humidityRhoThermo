@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2020 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,13 +22,12 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Application
-    buoyantPimpleFoam
+    buoyantHumidityPimpleFoam
 
 Description
     Transient solver for buoyant, turbulent flow of compressible fluids for
     ventilation and heat-transfer, with optional mesh motion and
-    mesh topology changes and humidity. The limitiation of the humidity lib
-    is related to 101325 Pa.
+    mesh topology changes and humidity.
 
     Uses the flexible PIMPLE (PISO-SIMPLE) solution for time-resolved and
     pseudo-transient simulations.
@@ -40,7 +39,6 @@ Description
 #include "humidityRhoThermo.H"
 #include "dynamicMomentumTransportModel.H"
 #include "fluidThermophysicalTransportModel.H"
-#include "radiationModel.H"
 #include "pimpleControl.H"
 #include "pressureReference.H"
 #include "hydrostaticInitialisation.H"
@@ -111,7 +109,7 @@ int main(int argc, char *argv[])
         // --- Pressure-velocity PIMPLE corrector loop
         while (pimple.loop())
         {
-           if (!pimple.flow())
+            if (!pimple.flow())
             {
                 if (pimple.models())
                 {
@@ -133,6 +131,8 @@ int main(int argc, char *argv[])
                     {
                         rhoU = new volVectorField("rhoU", rho*U);
                     }
+
+                    fvModels.preUpdateMesh();
 
                     // Do any mesh changes
                     mesh.update();

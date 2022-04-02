@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2018 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,11 +26,11 @@ License
 #include "fvPatchFieldMapper.H"
 #include "volFields.H"
 #include "humidityRhoThermo.H"
+#include "basicThermo.H"
 #include "addToRunTimeSelectionTable.H"
 #include "fixedHumidityFvPatchScalarField.H"
 
 class humidityRhoThermo;
-
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
@@ -41,7 +41,7 @@ fixedHumidityFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedValueFvPatchField<scalar>(p, iF),
+    fixedValueFvPatchScalarField(p, iF),
     mode_("relative"),
     method_("buck"),
     value_(0.0),
@@ -63,29 +63,12 @@ fixedHumidityFvPatchScalarField
 Foam::fixedHumidityFvPatchScalarField::
 fixedHumidityFvPatchScalarField
 (
-    const fixedHumidityFvPatchScalarField& ptf,
-    const fvPatch& p,
-    const DimensionedField<scalar, volMesh>& iF,
-    const fvPatchFieldMapper& mapper
-)
-:
-    fixedValueFvPatchField<scalar>(ptf, p, iF, mapper),
-    mode_(ptf.mode_),
-    method_(ptf.method_),
-    value_(ptf.value_),
-    methodName_(ptf.methodName_)
-{}
-
-
-Foam::fixedHumidityFvPatchScalarField::
-fixedHumidityFvPatchScalarField
-(
     const fvPatch& p,
     const DimensionedField<scalar, volMesh>& iF,
     const dictionary& dict
 )
 :
-    fixedValueFvPatchField<scalar>(p, iF, dict),
+    fixedValueFvPatchScalarField(p, iF, dict),
     mode_(dict.lookupOrDefault<word>("mode", "relative")),
     method_(dict.lookupOrDefault<word>("method", "buck")),
     value_(readScalar(dict.lookup("humidity"))),
@@ -102,7 +85,7 @@ fixedHumidityFvPatchScalarField
         1
     )
 {
-    // Default method to calculate the saturation pressure
+   // Default method to calculate the saturation pressure
     methodName_[0] = "buck";
 
     if (mode_ == "absolute")
@@ -139,19 +122,22 @@ fixedHumidityFvPatchScalarField
 }
 
 
-/* Foam::fixedHumidityFvPatchScalarField::
+Foam::fixedHumidityFvPatchScalarField::
 fixedHumidityFvPatchScalarField
 (
-    const fixedHumidityFvPatchScalarField& tppsf
+    const fixedHumidityFvPatchScalarField& ptf,
+    const fvPatch& p,
+    const DimensionedField<scalar, volMesh>& iF,
+    const fvPatchFieldMapper& mapper
 )
 :
-    fixedValueFvPatchField<scalar>(tppsf),
-    mode_(tppsf.mode_),
-    method_(tppsf.method_),
-    value_(tppsf.value_),
-    methodName_(tppsf.methodName_)
+    fixedValueFvPatchScalarField(ptf, p, iF, mapper),
+    mode_(ptf.mode_),
+    method_(ptf.method_),
+    value_(ptf.value_),
+    methodName_(ptf.methodName_)
 {}
- */
+
 
 Foam::fixedHumidityFvPatchScalarField::
 fixedHumidityFvPatchScalarField
@@ -160,7 +146,7 @@ fixedHumidityFvPatchScalarField
     const DimensionedField<scalar, volMesh>& iF
 )
 :
-    fixedValueFvPatchField<scalar>(tppsf, iF),
+    fixedValueFvPatchScalarField(tppsf, iF),
     mode_(tppsf.mode_),
     method_(tppsf.method_),
     methodName_(tppsf.methodName_)
@@ -178,10 +164,10 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
 
     const humidityRhoThermo& thermo =
        this->db().lookupObject<humidityRhoThermo>("thermophysicalProperties");
-
+    
     const label patchi = patch().index();
 
-    const scalarField specificHumidity = calcSpecificHumidity(thermo, patchi);
+     const scalarField specificHumidity = calcSpecificHumidity(thermo, patchi);
 
     //const scalarField& pw = thermo.p().boundaryField()[patchi];
     //fvPatchScalarField& Tw =
@@ -189,9 +175,8 @@ void Foam::fixedHumidityFvPatchScalarField::updateCoeffs()
     //Tw.evaluate();
     operator==(specificHumidity);
 
-    fixedValueFvPatchField<scalar>::updateCoeffs();
+    fixedValueFvPatchScalarField::updateCoeffs();
 }
-
 
 const Foam::scalarField Foam::fixedHumidityFvPatchScalarField::
 calcSpecificHumidity
@@ -294,13 +279,12 @@ calcSpecificHumidity
 
 void Foam::fixedHumidityFvPatchScalarField::write(Ostream& os) const
 {
-    fvPatchField<scalar>::write(os);
+    fvPatchScalarField::write(os);
     os.writeKeyword("mode") << mode_ << token::END_STATEMENT << nl;
     os.writeKeyword("method") << method_ << token::END_STATEMENT << nl;
     os.writeKeyword("humidity") << value_ << token::END_STATEMENT << nl;
     writeEntry(os, "value",  *this);
 }
-
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

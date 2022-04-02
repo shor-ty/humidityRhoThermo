@@ -318,7 +318,7 @@ Foam::humidityRhoThermo::implementation::implementation
     (
         IOobject
         (
-            phasePropertyName("thermo:maxWaterVapor", phaseName),
+            phasePropertyName("maxWaterVapor", phaseName),
             mesh.time().timeName(),
             mesh,
             IOobject::NO_READ,
@@ -405,7 +405,6 @@ Foam::humidityRhoThermo::implementation::implementation
     // Read or build the specificHumidity field
     readOrInitSpecificHumidity();
 
-    // Set the method regarding the calulation of the pSat equation
     readMethod();
 }
 
@@ -486,6 +485,7 @@ Foam::tmp<Foam::scalarField> Foam::humidityRhoThermo::implementation::mu
 {
     return mu_.boundaryField()[patchi];
 }
+
 
 void Foam::humidityRhoThermo::implementation::readMethod()
 {

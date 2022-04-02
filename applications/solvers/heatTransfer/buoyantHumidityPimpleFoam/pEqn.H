@@ -25,7 +25,7 @@ surfaceScalarField phiHbyA
 
 MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
 
-bool adjustMass = pimple.transonic() ? false : adjustPhi(phiHbyA, U, p_rgh);
+bool adjustMass = mesh.steady() && adjustPhi(phiHbyA, U, p_rgh);
 
 surfaceScalarField phig(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
 
@@ -74,11 +74,6 @@ if (pimple.transonic())
 }
 else
 {
-    if (mesh.steady())
-    {
-        adjustMass = adjustPhi(phiHbyA, U, p_rgh);
-    }
-
     fvScalarMatrix p_rghDDtEqn
     (
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
@@ -103,6 +98,9 @@ else
 
 phi = phiHbyA + p_rghEqn.flux();
 
+// Explicitly relax pressure for momentum corrector
+p_rgh.relax();
+
 p = p_rgh + rho*gh + pRef;
 
 if (mesh.steady())
@@ -111,12 +109,12 @@ if (mesh.steady())
 }
 else
 {
-    const bool limitedp = fvConstraints.constrain(p);
+    const bool constrained = fvConstraints.constrain(p);
 
     // Thermodynamic density update
     thermo.correctRho(psi*p - psip0);
 
-    if (limitedp)
+    if (constrained)
     {
         rho = thermo.rho();
     }
@@ -124,9 +122,6 @@ else
     #include "rhoEqn.H"
     #include "compressibleContinuityErrs.H"
 }
-
-// Explicitly relax pressure for momentum corrector
-p_rgh.relax();
 
 // Correct the momentum source with the pressure gradient flux
 // calculated from the relaxed pressure

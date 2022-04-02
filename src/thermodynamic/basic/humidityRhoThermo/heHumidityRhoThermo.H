@@ -26,7 +26,6 @@ Class
 
 Description
     Energy for a mixture based on density
-    Includes humidity effects
 
 SourceFiles
     heHumidityRhoThermo.C
@@ -57,10 +56,6 @@ class heHumidityRhoThermo
 
         //- Calculate the thermo variables
         void calculate();
-    
-        //- Construct as copy (not implemented)
-        heHumidityRhoThermo(const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&);
-
 
 
 public:
@@ -78,12 +73,15 @@ public:
             const word& phaseName
         );
 
+        //- Disallow default bitwise copy construction
+        heHumidityRhoThermo(const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&) = delete;
+
 
     //- Destructor
     virtual ~heHumidityRhoThermo();
 
 
-    // Member Operators
+    // Member Functions
 
         //- Initialize the thermo:specificHumidity using the thermo:relHum field
         virtual void initialize();
@@ -125,6 +123,14 @@ public:
 
         //- Limit the specific humidity to the max range
         virtual void limitMax();
+        
+    // Member Operators
+
+        //- Disallow default bitwise assignment
+        void operator=
+        (
+            const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&
+        ) = delete;
 };
 
 

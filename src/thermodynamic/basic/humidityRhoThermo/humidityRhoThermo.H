@@ -125,8 +125,6 @@ public:
 
             //- Dynamic viscosity of mixture for patch [kg/m/s]
             virtual tmp<scalarField> mu(const label patchi) const = 0;
-
-
 };
 
 
@@ -143,7 +141,7 @@ protected:
     // Protected data
 
         //- Density field [kg/m^3]
-        //  Named 'humidityRhoThermo' to avoid (potential) conflict with solver density
+        //  Named 'thermo:rho' to avoid (potential) conflict with solver density
         volScalarField rho_;
 
         //- Compressibility [s^2/m^2]
@@ -151,7 +149,7 @@ protected:
 
         //- Dynamic viscosity [kg/m/s]
         volScalarField mu_;
-
+    
         //- Relative humidity [-]
         volScalarField relHum_;
 
@@ -182,7 +180,7 @@ protected:
         //- Initialize the specificHumidity using the relHum field
         bool initWithRelHumidity_;
 
-    // Turbulence fields
+        // Turbulence fields
 
         volScalarField muEff_;
 
@@ -235,12 +233,13 @@ public:
 
             //- Dynamic viscosity of mixture for patch [kg/m/s]
             virtual tmp<scalarField> mu(const label patchi) const;
+
         // Read
 
             virtual void readMethod();
 
             virtual void readOrInitSpecificHumidity();
-
+            
     // Member Operators
 
         //- Disallow default bitwise assignment

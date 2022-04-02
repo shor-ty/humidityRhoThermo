@@ -176,10 +176,12 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::heHumidityRhoThermo
 :
     heThermo<BasicPsiThermo, MixtureType>(mesh, phaseName)
 {
+
     if (this->initWithRelHumidity_)
     {
         initialize();
     }
+
 
     calculate();
 
@@ -206,12 +208,17 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::initialize()
 
     initialSpecificHumidityFromRelHumidity();
 
-    std::terminate();
+    //std::terminate();
 }
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
 {
+    if (debug)
+    {
+        InfoInFunction << endl;
+    }
+
     calculate();
 
     //Info<< "   Solve transport equation for specific humidity\n";
@@ -240,6 +247,11 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
 
     //- Keep the physical bound of the maximum values
     limitMax();
+
+    if (debug)
+    {
+        Info<< "    Finished" << endl;
+    }
 }
 
 template<class BasicPsiThermo, class MixtureType>
@@ -480,12 +492,12 @@ specificHumidityTransport()
         muEff = mu;
     }
 
-    // fvOptions has been replaced by fvModels and fvConstraints in OF9
+    // fvOptions has been replaced by fvConstraints and fvMoldels
     const Foam::fvModels& fvModels(Foam::fvModels::New(phi.mesh()));
     const Foam::fvConstraints& fvConstraints
-        (
-            Foam::fvConstraints::New(phi.mesh())
-        );
+    (
+        Foam::fvConstraints::New(phi.mesh())
+    );
 
     fvScalarMatrix specHumEqn
     (
@@ -500,7 +512,6 @@ specificHumidityTransport()
     fvConstraints.constrain(specHumEqn);
     specHumEqn.solve();
     fvConstraints.constrain(specHum);
-    //fvModels.correct();
 
     //- To keep physical range
     //  Defined between 0 and max water vaper content based on saturation pressure
@@ -601,7 +612,7 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::updateRho
     volScalarField& rho
 )
 {
-     const volScalarField& T = this->T_;
+    const volScalarField& T = this->T_;
     const volScalarField& pPH2O = this->partialPressureH2O_;
     const volScalarField& p = this->p_;
 
@@ -675,7 +686,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::limitMax()
         Info<< "    Correcting " << max << " cells which were higher than max\n";
     }
 }
-
 
 
 // ************************************************************************* //

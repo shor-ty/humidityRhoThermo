@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2018 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2020 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,10 +23,8 @@ License
 
 Class
     Foam::fixedHumidityFvPatchScalarField
-
 Description
     This boundary condition provides a fixed condition for humidity
-
 Usage
     Example of the boundary condition specification:
     \verbatim
@@ -38,10 +36,8 @@ Usage
         method          buck;
     }
     \endverbatim
-
 See also
     Foam::fixedValueFvPatchField
-
 SourceFiles
     fixedHumidityFvPatchScalarField.C
 
@@ -58,7 +54,7 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-               Class fixedHumidityFvPatchScalarField Declaration
+                Class fixedHumidityFvPatchScalarField Declaration
 \*---------------------------------------------------------------------------*/
 
 class fixedHumidityFvPatchScalarField
@@ -118,22 +114,13 @@ public:
             const fvPatchFieldMapper&
         );
 
-/*         //- Construct as copy
-         fixedHumidityFvPatchScalarField
+        //- Disallow copy without setting internal field reference
+        fixedHumidityFvPatchScalarField
         (
             const fixedHumidityFvPatchScalarField&
-        );
+        ) = delete;
 
-        //- Construct and return a clone
-        virtual tmp<fvPatchScalarField> clone() const
-        {
-            return tmp<fvPatchScalarField>
-            (
-                new fixedHumidityFvPatchScalarField(*this)
-            );
-        }
- */
-        //- Construct as copy setting internal field reference
+        //- Copy constructor setting internal field reference
         fixedHumidityFvPatchScalarField
         (
             const fixedHumidityFvPatchScalarField&,
@@ -153,7 +140,7 @@ public:
         }
 
 
-    // Member functions
+    // Member Functions
 
         // Evaluation functions
 
