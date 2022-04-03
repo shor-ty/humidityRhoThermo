@@ -79,19 +79,28 @@ volScalarField p_rgh
     mesh
 );
 
-// Force p_rgh to be consistent with p
-p_rgh = p - rho*gh - pRef;
-
-pressureControl pressureControl
+pressureReference pressureReference
 (
     p,
     p_rgh,
-    rho,
     pimple.dict(),
     thermo.incompressible()
 );
 
 mesh.setFluxRequired(p_rgh.name());
+
+hydrostaticInitialisation
+(
+    p_rgh,
+    p,
+    rho,
+    U,
+    gh,
+    ghf,
+    pRef,
+    thermo,
+    pimple.dict()
+);
 
 Info<< "Creating field dpdt\n" << endl;
 volScalarField dpdt
@@ -112,5 +121,6 @@ volScalarField K("K", 0.5*magSqr(U));
 dimensionedScalar initialMass = fvc::domainIntegrate(rho);
 
 #include "createMRF.H"
-#include "createRadiationModel.H"
-#include "createFvOptions.H"
+#include "createFvModels.H"
+#include "createFvConstraints.H"
+#include "checkRadiationModel.H"

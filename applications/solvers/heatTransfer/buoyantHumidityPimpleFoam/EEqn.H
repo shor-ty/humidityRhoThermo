@@ -7,29 +7,22 @@
       + fvc::ddt(rho, K) + fvc::div(phi, K)
       + (
             he.name() == "e"
-          ? fvc::div
-            (
-                fvc::absolute(phi/fvc::interpolate(rho), U),
-                p,
-                "div(phiv,p)"
-            )
+          ? fvc::div(fvc::absolute(phi, rho, U), p/rho)
           : -dpdt
         )
       + thermophysicalTransport->divq(he)
      ==
         rho*(U&g)
-      + radiation->Sh(thermo, he)
-      + fvOptions(rho, he)
+      + fvModels.source(rho, he)
     );
 
     EEqn.relax();
 
-    fvOptions.constrain(EEqn);
+    fvConstraints.constrain(EEqn);
 
     EEqn.solve();
 
-    fvOptions.correct(he);
+    fvConstraints.constrain(he);
 
     thermo.correct();
-    radiation->correct();
 }

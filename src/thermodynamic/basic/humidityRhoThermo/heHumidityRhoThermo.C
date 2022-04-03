@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2020 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,7 +25,8 @@ License
 
 #include "heHumidityRhoThermo.H"
 #include "fvMatricesFwd.H"
-#include "fvOptions.H"
+#include "fvModels.H"
+#include "fvConstraints.H"
 #include "fvCFD.H"
 #include "bound.H"
 
@@ -38,25 +39,34 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
     const scalarField& pCells = this->p_;
 
     scalarField& TCells = this->T_.primitiveFieldRef();
+    scalarField& CpCells = this->Cp_.primitiveFieldRef();
+    scalarField& CvCells = this->Cv_.primitiveFieldRef();
     scalarField& psiCells = this->psi_.primitiveFieldRef();
     scalarField& muCells = this->mu_.primitiveFieldRef();
     scalarField& alphaCells = this->alpha_.primitiveFieldRef();
 
     forAll(TCells, celli)
     {
-        const typename MixtureType::thermoType& mixture_ =
-            this->cellMixture(celli);
+        const typename MixtureType::thermoMixtureType& thermoMixture =
+            this->cellThermoMixture(celli);
 
-        TCells[celli] = mixture_.THE
+        const typename MixtureType::transportMixtureType& transportMixture =
+            this->cellTransportMixture(celli, thermoMixture);
+
+        TCells[celli] = thermoMixture.THE
         (
             hCells[celli],
             pCells[celli],
             TCells[celli]
         );
 
-        psiCells[celli] = mixture_.psi(pCells[celli], TCells[celli]);
-        muCells[celli] = mixture_.mu(pCells[celli], TCells[celli]);
-        alphaCells[celli] = mixture_.alphah(pCells[celli], TCells[celli]);
+        CpCells[celli] = thermoMixture.Cp(pCells[celli], TCells[celli]);
+        CvCells[celli] = thermoMixture.Cv(pCells[celli], TCells[celli]);
+        psiCells[celli] = thermoMixture.psi(pCells[celli], TCells[celli]);
+        muCells[celli] = transportMixture.mu(pCells[celli], TCells[celli]);
+        alphaCells[celli] =
+            transportMixture.kappa(pCells[celli], TCells[celli])
+           /thermoMixture.Cp(pCells[celli], TCells[celli]);
     }
 
     volScalarField::Boundary& pBf =
@@ -64,6 +74,11 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
 
     volScalarField::Boundary& TBf =
         this->T_.boundaryFieldRef();
+    volScalarField::Boundary& CpBf =
+        this->Cp_.boundaryFieldRef();
+
+    volScalarField::Boundary& CvBf =
+        this->Cv_.boundaryFieldRef();
 
     volScalarField::Boundary& psiBf =
         this->psi_.boundaryFieldRef();
@@ -81,6 +96,8 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
     {
         fvPatchScalarField& pp = pBf[patchi];
         fvPatchScalarField& pT = TBf[patchi];
+        fvPatchScalarField& pCp = CpBf[patchi];
+        fvPatchScalarField& pCv = CvBf[patchi];
         fvPatchScalarField& ppsi = psiBf[patchi];
         fvPatchScalarField& phe = heBf[patchi];
         fvPatchScalarField& pmu = muBf[patchi];
@@ -90,26 +107,45 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::calculate()
         {
             forAll(pT, facei)
             {
-                const typename MixtureType::thermoType& mixture_ =
-                    this->patchFaceMixture(patchi, facei);
+                const typename MixtureType::thermoType& thermoMixture =
+                    this->patchFaceThermoMixture(patchi, facei);
 
-                phe[facei] = mixture_.HE(pp[facei], pT[facei]);
-                ppsi[facei] = mixture_.psi(pp[facei], pT[facei]);
-                pmu[facei] = mixture_.mu(pp[facei], pT[facei]);
-                palpha[facei] = mixture_.alphah(pp[facei], pT[facei]);
+                const typename MixtureType::transportMixtureType&
+                    transportMixture =
+                    this->patchFaceTransportMixture
+                    (patchi, facei, thermoMixture);
+
+                phe[facei] = thermoMixture.HE(pp[facei], pT[facei]);
+                pCp[facei] = thermoMixture.Cp(pp[facei], pT[facei]);
+                pCv[facei] = thermoMixture.Cv(pp[facei], pT[facei]);
+                ppsi[facei] = thermoMixture.psi(pp[facei], pT[facei]);
+                ppsi[facei] = thermoMixture.psi(pp[facei], pT[facei]);
+                pmu[facei] = transportMixture.mu(pp[facei], pT[facei]);
+                palpha[facei] =
+                    transportMixture.kappa(pp[facei], pT[facei])
+                   /thermoMixture.Cp(pp[facei], pT[facei]);
             }
         }
         else
         {
             forAll(pT, facei)
             {
-                const typename MixtureType::thermoType& mixture_ =
-                    this->patchFaceMixture(patchi, facei);
+                const typename MixtureType::thermoType& thermoMixture =
+                    this->patchFaceThermoMixture(patchi, facei);
 
-                pT[facei] = mixture_.THE(phe[facei], pp[facei], pT[facei]);
-                ppsi[facei] = mixture_.psi(pp[facei], pT[facei]);
-                pmu[facei] = mixture_.mu(pp[facei], pT[facei]);
-                palpha[facei] = mixture_.alphah(pp[facei], pT[facei]);
+                const typename MixtureType::transportMixtureType&
+                    transportMixture =
+                    this->patchFaceTransportMixture
+                    (patchi, facei, thermoMixture);
+
+                pT[facei] = thermoMixture.THE(phe[facei], pp[facei], pT[facei]);
+                pCp[facei] = thermoMixture.Cp(pp[facei], pT[facei]);
+                pCv[facei] = thermoMixture.Cv(pp[facei], pT[facei]);
+                ppsi[facei] = thermoMixture.psi(pp[facei], pT[facei]);
+                pmu[facei] = transportMixture.mu(pp[facei], pT[facei]);
+                palpha[facei] =
+                    transportMixture.kappa(pp[facei], pT[facei])
+                   /thermoMixture.Cp(pp[facei], pT[facei]);
             }
         }
     }
@@ -127,10 +163,12 @@ Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::heHumidityRhoThermo
 :
     heThermo<BasicPsiThermo, MixtureType>(mesh, phaseName)
 {
+
     if (this->initWithRelHumidity_)
     {
         initialize();
     }
+
 
     calculate();
 
@@ -157,13 +195,17 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::initialize()
 
     initialSpecificHumidityFromRelHumidity();
 
-    std::terminate();
+    //std::terminate();
 }
-
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
 {
+    if (debug)
+    {
+        InfoInFunction << endl;
+    }
+
     calculate();
 
     //Info<< "   Solve transport equation for specific humidity\n";
@@ -192,8 +234,12 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::correct()
 
     //- Keep the physical bound of the maximum values
     limitMax();
-}
 
+    if (debug)
+    {
+        Info<< "    Finished" << endl;
+    }
+}
 
 template<class BasicPsiThermo, class MixtureType>
 void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::pSatH2O()
@@ -296,7 +342,6 @@ partialPressureH2O()
     );
 
     const volScalarField& p = this->p_;
-    const volScalarField& T = this->T_;
     const volScalarField& sH = this->specificHumidity_;
 
     volScalarField& pPH2O = this->partialPressureH2O_;
@@ -345,7 +390,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterVapor()
 {
     const volScalarField& pPH2O = this->partialPressureH2O_;
     const volScalarField& pSatH2O = this->pSatH2O_;
-    const volScalarField& p = this->p_;
     const volScalarField& T = this->T_;
 
     const dimensionedScalar RSpecificH2O
@@ -395,7 +439,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::waterMass()
     const volScalarField& waterVapor = this->waterVapor_;
     const scalarField& V = waterVapor.mesh().V();
 
-    const scalarField& waterVaporPF = waterVapor.internalField();
     scalarField& waterMass = this->waterMass_;
 
     waterMass = waterVapor*V;
@@ -436,8 +479,12 @@ specificHumidityTransport()
         muEff = mu;
     }
 
-    // fvOptions
-    fv::options& fvOptions(fv::options::New(phi.mesh()));
+    // fvOptions has been replaced by fvConstraints and fvMoldels
+    const Foam::fvModels& fvModels(Foam::fvModels::New(phi.mesh()));
+    const Foam::fvConstraints& fvConstraints
+    (
+        Foam::fvConstraints::New(phi.mesh())
+    );
 
     fvScalarMatrix specHumEqn
     (
@@ -445,13 +492,13 @@ specificHumidityTransport()
       + fvm::div(phi, specHum)
      ==
         fvm::laplacian(muEff, specHum)
-      + fvOptions(rho, specHum)
+      + fvModels.source(rho, specHum)
     );
 
     specHumEqn.relax();
-    fvOptions.constrain(specHumEqn);
+    fvConstraints.constrain(specHumEqn);
     specHumEqn.solve();
-    fvOptions.correct(specHum);
+    fvConstraints.constrain(specHum);
 
     //- To keep physical range
     //  Defined between 0 and max water vaper content based on saturation pressure
@@ -469,7 +516,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::
 initialSpecificHumidityFromRelHumidity()
 {
     const volScalarField& pPH2O = this->partialPressureH2O_;
-    const volScalarField& T = this->T_;
     const volScalarField& p = this->p_;
     volScalarField& specHum = this->specificHumidity_;
 
@@ -553,7 +599,6 @@ void Foam::heHumidityRhoThermo<BasicPsiThermo, MixtureType>::updateRho
     volScalarField& rho
 )
 {
-    const volScalarField& specHum = this->specificHumidity_;
     const volScalarField& T = this->T_;
     const volScalarField& pPH2O = this->partialPressureH2O_;
     const volScalarField& p = this->p_;

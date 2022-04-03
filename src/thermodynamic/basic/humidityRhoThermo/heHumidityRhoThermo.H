@@ -1,8 +1,8 @@
 /*---------------------------------------------------------------------------*\
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
-   \\    /   O peration     |
-    \\  /    A nd           | Copyright (C) 2011-2016 OpenFOAM Foundation
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2011-2020 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -25,8 +25,7 @@ Class
     Foam::heHumidityRhoThermo
 
 Description
-    Energy for a mixture based on density.
-    Includes humidity effects
+    Energy for a mixture based on density
 
 SourceFiles
     heHumidityRhoThermo.C
@@ -58,8 +57,6 @@ class heHumidityRhoThermo
         //- Calculate the thermo variables
         void calculate();
 
-        //- Construct as copy (not implemented)
-        heHumidityRhoThermo(const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&);
 
 public:
 
@@ -76,12 +73,15 @@ public:
             const word& phaseName
         );
 
+        //- Disallow default bitwise copy construction
+        heHumidityRhoThermo(const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&) = delete;
+
 
     //- Destructor
     virtual ~heHumidityRhoThermo();
 
 
-    // Member functions
+    // Member Functions
 
         //- Initialize the thermo:specificHumidity using the thermo:relHum field
         virtual void initialize();
@@ -123,6 +123,14 @@ public:
 
         //- Limit the specific humidity to the max range
         virtual void limitMax();
+        
+    // Member Operators
+
+        //- Disallow default bitwise assignment
+        void operator=
+        (
+            const heHumidityRhoThermo<BasicPsiThermo, MixtureType>&
+        ) = delete;
 };
 
 

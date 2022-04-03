@@ -25,7 +25,7 @@ surfaceScalarField phiHbyA
 
 MRF.makeRelative(fvc::interpolate(rho), phiHbyA);
 
-bool adjustMass = pimple.transonic() ? false : adjustPhi(phiHbyA, U, p_rgh);
+bool adjustMass = mesh.steady() && adjustPhi(phiHbyA, U, p_rgh);
 
 surfaceScalarField phig(-rhorAUf*ghf*fvc::snGrad(rho)*mesh.magSf());
 
@@ -53,7 +53,7 @@ if (pimple.transonic())
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
       + fvc::div(phiHbyA) + fvm::div(phid, p_rgh)
      ==
-        fvOptions(psi, p_rgh, rho.name())
+        fvModels.source(psi, p_rgh, rho.name())
     );
 
     while (pimple.correctNonOrthogonal())
@@ -65,8 +65,8 @@ if (pimple.transonic())
 
         p_rghEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         p_rghEqn.solve();
@@ -74,17 +74,12 @@ if (pimple.transonic())
 }
 else
 {
-    if (mesh.steady())
-    {
-        adjustMass = adjustPhi(phiHbyA, U, p_rgh);
-    }
-
     fvScalarMatrix p_rghDDtEqn
     (
         fvc::ddt(rho) + psi*correction(fvm::ddt(p_rgh))
       + fvc::div(phiHbyA)
      ==
-        fvOptions(psi, p_rgh, rho.name())
+        fvModels.source(psi, p_rgh, rho.name())
     );
 
     while (pimple.correctNonOrthogonal())
@@ -93,8 +88,8 @@ else
 
         p_rghEqn.setReference
         (
-            pressureControl.refCell(),
-            pressureControl.refValue()
+            pressureReference.refCell(),
+            pressureReference.refValue()
         );
 
         p_rghEqn.solve();
@@ -102,6 +97,9 @@ else
 }
 
 phi = phiHbyA + p_rghEqn.flux();
+
+// Explicitly relax pressure for momentum corrector
+p_rgh.relax();
 
 p = p_rgh + rho*gh + pRef;
 
@@ -111,12 +109,12 @@ if (mesh.steady())
 }
 else
 {
-    const bool limitedp = pressureControl.limit(p);
+    const bool constrained = fvConstraints.constrain(p);
 
     // Thermodynamic density update
     thermo.correctRho(psi*p - psip0);
 
-    if (limitedp)
+    if (constrained)
     {
         rho = thermo.rho();
     }
@@ -125,19 +123,16 @@ else
     #include "compressibleContinuityErrs.H"
 }
 
-// Explicitly relax pressure for momentum corrector
-p_rgh.relax();
-
 // Correct the momentum source with the pressure gradient flux
 // calculated from the relaxed pressure
 U = HbyA + rAU*fvc::reconstruct((phig + p_rghEqn.flux())/rhorAUf);
 U.correctBoundaryConditions();
-fvOptions.correct(U);
+fvConstraints.constrain(U);
 K = 0.5*magSqr(U);
 
 if (mesh.steady())
 {
-    pressureControl.limit(p);
+    fvConstraints.constrain(p);
 }
 
 // For steady closed-volume compressible cases adjust the pressure level
