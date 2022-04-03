@@ -1,0 +1,14 @@
+#!/bin/gnuplot
+#-------------------------------------------------------------------------------
+
+set title "Source 1 [kg/kg/s]"
+set xlabel "Time [s]"
+set ylabel "Actual Cell Value [kg/kg]"
+set grid
+
+set output "codedFvOptions_FixedSource.pdf"
+set terminal pdfcairo enhanced
+plot "data" using 1:2 w l t ''
+pause 0.1
+
+#-------------------------------------------------------------------------------

@@ -1,0 +1,4 @@
+SOURCE = \
+humidityRhoThermo/humidityRhoThermo.C \
+humidityRhoThermo/humidityRhoThermos.C \
+derivedFvPatchFields/fixedHumidity/fixedHumidityFvPatchScalarField.C 

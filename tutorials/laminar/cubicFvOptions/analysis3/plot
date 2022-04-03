@@ -1,0 +1,19 @@
+#!/bin/gnuplot
+#-------------------------------------------------------------------------------
+
+set title "Source 0.00777 [kg/m^3/s]"
+set xlabel "Time [s]"
+set ylabel "Mass in System [kg]"
+set y2label "Relative Humidity [%]"
+set y2tics
+set grid
+set key right bottom
+set arrow from 0,0.01727 to 5,0.01727 nohead lc rgb 'red'
+
+set output "semiImplicitSource.pdf"
+set terminal pdfcairo enhanced
+plot "mass/mass" using 1:2 w l t 'Water Content', \
+"rel/rel" using 1:2 w l axis x1y2 t 'Rel Hum'
+pause 0.1
+
+#-------------------------------------------------------------------------------
