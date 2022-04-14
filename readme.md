@@ -13,13 +13,16 @@ After that load your OpenFOAM environment (if not already happend) and move into
 @~: git checkout <TAB><TAB>
 OpenFOAM-6.x
 OpenFOAM-7.x
+OpenFOAM-v8
+OpenFOAM-v9
 OpenFOAM-v1712
 OpenFOAM-v1806
 OpenFOAM-v1812
 OpenFOAM-v1906
 OpenFOAM-v1912
-OpenFOAM-v8
-@~: git checkout OpenFOAM-v8
+OpenFOAM-v2012
+OpenFOAM-v2112
+@~: git checkout OpenFOAM-v9
 ```
 After you switched to your OpenFOAM version, you have to compile the library first and after that the solver:
 ```console
