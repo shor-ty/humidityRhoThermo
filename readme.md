@@ -35,3 +35,7 @@ You are done. After that you can use the buoyantHumidityPimpleFoam solver.
 
 # Sponsored
 This project was sponsered by Tian Building Engineering
+
+# Rebuilt
+This version was initially created by Tobias Holzmann for OpenFOAM-v9 but needed to be changed and modified as the Foundation version was changed in addition.
+The rebuilt for the latest OpenFOAM-v9 version was done by Dr. Robert Castilla. Thanks for that.
